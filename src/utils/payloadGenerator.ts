@@ -1,6 +1,3 @@
-// TODO: align ybusPrep.ts units — ybusPrep.ts treats R/X/B as already p.u.;
-// this module treats them as physical Ω/S and converts to p.u. here.
-
 import type { Edge, Node } from 'reactflow';
 import type { BusNodeData, TransmissionEdgeData } from '../types';
 import type { NetworkIsland } from '../types/topology';
@@ -53,7 +50,12 @@ export function generatePowerFlowPayload(
       const attachedEdges = transformerEdges.filter(
         (e) => e.source === txId || e.target === txId
       );
-      if (attachedEdges.length < 2) continue;
+      if (attachedEdges.length !== 2) {
+        throw new Error(
+          `Transformer "${txId}" must have exactly 2 terminals but has ${attachedEdges.length}. ` +
+          `Connect it to exactly two buses before running the simulation.`
+        );
+      }
 
       const fromBus =
         attachedEdges[0].source === txId
@@ -70,6 +72,7 @@ export function generatePowerFlowPayload(
         (txNode.data as { rating_mva?: number }).rating_mva ?? 100;
 
       branches.push({
+        branch_id: txId,
         from_bus: fromBus,
         to_bus: toBus,
         r_pu: 0,
@@ -81,27 +84,17 @@ export function generatePowerFlowPayload(
       });
     }
 
-    // Build transmission line branches (physical Ω/S → p.u.)
+    // Transmission line branches — R/X/B are stored as p.u. (entered via UI)
     for (const edge of lineEdges) {
       if (!edge.data) continue;
 
-      const fromNode = nodeMap.get(edge.source);
-      const vNomKv =
-        fromNode?.type === 'busNode'
-          ? ((fromNode.data as BusNodeData).v_nom ?? 110)
-          : 110;
-
-      const zBase = (vNomKv * vNomKv) / S_BASE_MVA;
-      const rPu = edge.data.r / zBase;
-      const xPu = edge.data.x / zBase;
-      const bPu = edge.data.b * zBase;
-
       branches.push({
+        branch_id: edge.id,
         from_bus: edge.source,
         to_bus: edge.target,
-        r_pu: rPu,
-        x_pu: xPu,
-        b_pu: bPu,
+        r_pu: edge.data.r,
+        x_pu: edge.data.x,
+        b_pu: edge.data.b,
         rating_mva: edge.data.rating_mva,
         is_transformer: false,
         tap: 1.0,

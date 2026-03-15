@@ -12,6 +12,7 @@ export interface BusPayload {
 }
 
 export interface BranchPayload {
+  branch_id: string;
   from_bus: string;
   to_bus: string;
   r_pu: number;
@@ -42,6 +43,7 @@ export interface BusResult {
 }
 
 export interface BranchResult {
+  branch_id: string;
   from_bus: string;
   to_bus: string;
   p_from_mw: number;

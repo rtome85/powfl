@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,9 +13,12 @@ from .models import (
 
 app = FastAPI(title="PowFL Power Flow API")
 
+_raw_origins = os.environ.get("ALLOWED_ORIGINS", "")
+allow_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()] or ["http://localhost:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -38,6 +43,7 @@ def calculate_power_flow(payload: PowerFlowRequest) -> PowerFlowResponse:
             ],
             branches=[
                 BranchResult(
+                    branch_id=br.branch_id,
                     from_bus=br.from_bus,
                     to_bus=br.to_bus,
                     p_from_mw=0,

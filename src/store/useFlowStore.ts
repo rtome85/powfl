@@ -72,6 +72,14 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         set({ simulationStatus: 'error', simulationError: result.message });
         return;
       }
+      const unconverged = result.islands.filter((i) => !i.converged);
+      if (unconverged.length > 0) {
+        set({
+          simulationStatus: 'error',
+          simulationError: `Power flow did not converge for island(s): ${unconverged.map((i) => i.island_id).join(', ')}`,
+        });
+        return;
+      }
       // Batch-apply all bus results in one set() to avoid N topology re-analyses
       set((state) => {
         const resultMap = new Map(
