@@ -1,3 +1,4 @@
+import { MousePointerClick } from 'lucide-react';
 import { useFlowStore } from '../../store/useFlowStore';
 import BusProperties from '../properties/BusProperties';
 import TransformerProperties from '../properties/TransformerProperties';
@@ -12,23 +13,37 @@ export default function PropertiesPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Properties</h2>
+      {/* Header */}
+      <div className="px-4 py-4 border-b border-gray-100">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Properties</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-3">
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
         {!selectedElement && (
-          <p className="text-xs text-gray-400 text-center mt-8">
-            Select a node or edge to view properties
-          </p>
+          <div className="flex flex-col items-center justify-center h-48 gap-3 px-6 text-center">
+            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+              <MousePointerClick size={18} className="text-gray-300" strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-400">Nothing selected</p>
+              <p className="text-xs text-gray-300 mt-0.5 leading-relaxed">
+                Click a node or edge to inspect and edit its parameters
+              </p>
+            </div>
+          </div>
         )}
+
         {selectedElement?.kind === 'node' && selectedElement.nodeType === 'busNode' && (() => {
           const node = nodes.find((n) => n.id === selectedElement.id) as Node<BusNodeData> | undefined;
           return node ? <BusProperties node={node} /> : null;
         })()}
+
         {selectedElement?.kind === 'node' && selectedElement.nodeType === 'transformerNode' && (() => {
           const node = nodes.find((n) => n.id === selectedElement.id) as Node<TransformerNodeData> | undefined;
           return node ? <TransformerProperties node={node} /> : null;
         })()}
+
         {selectedElement?.kind === 'edge' && (() => {
           const edge = edges.find((e) => e.id === selectedElement.id) as Edge<TransmissionEdgeData> | undefined;
           return edge ? <EdgeProperties edge={edge} /> : null;
