@@ -33,11 +33,12 @@ export const useFlowStore = create<FlowState>((set) => ({
       topologyReport: analyzeTopology(state.nodes, edges),
     })),
   updateNodeData: (id, data) =>
-    set((state) => ({
-      nodes: state.nodes.map((n) =>
+    set((state) => {
+      const nodes = state.nodes.map((n) =>
         n.id === id ? { ...n, data: { ...n.data, ...data } } : n
-      ),
-    })),
+      );
+      return { nodes, topologyReport: analyzeTopology(nodes, state.edges) };
+    }),
   updateEdgeData: (id, data) =>
     set((state) => ({
       edges: state.edges.map((e) =>

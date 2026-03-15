@@ -151,32 +151,37 @@ export default function FlowCanvas() {
     [onEdgesChange]
   );
 
-  const isValidConnection = useCallback((connection: Connection): boolean => {
-    const { source, target } = connection;
-    if (source === target) return false;
+  const isValidConnection = useCallback(
+    (connection: Connection): boolean => {
+      const { source, target } = connection;
+      if (source === target) return false;
 
-    const allNodes = useFlowStore.getState().nodes;
-    const sourceNode = allNodes.find((n) => n.id === source);
-    const targetNode = allNodes.find((n) => n.id === target);
-    if (!sourceNode || !targetNode) return false;
+      const sourceNode = rfNodes.find((n) => n.id === source);
+      const targetNode = rfNodes.find((n) => n.id === target);
+      if (!sourceNode || !targetNode) return false;
 
-    // At least one endpoint must be a busNode
-    if (sourceNode.type !== 'busNode' && targetNode.type !== 'busNode') return false;
+      // At least one endpoint must be a true bus (not a load/generator variant)
+      const isTrueBus = (n: typeof sourceNode) => {
+        const data = n.data as BusNodeData;
+        return n.type === 'busNode' && data?.variant !== 'load' && data?.variant !== 'generator';
+      };
+      if (!isTrueBus(sourceNode) && !isTrueBus(targetNode)) return false;
 
-    // load/generator variant → max 1 connection
-    const allEdges = useFlowStore.getState().edges;
-    for (const node of [sourceNode, targetNode]) {
-      const data = node.data as BusNodeData;
-      if (data?.variant === 'load' || data?.variant === 'generator') {
-        const degree = allEdges.filter(
-          (e) => e.source === node.id || e.target === node.id
-        ).length;
-        if (degree >= 1) return false;
+      // load/generator variant → max 1 connection
+      for (const node of [sourceNode, targetNode]) {
+        const data = node.data as BusNodeData;
+        if (data?.variant === 'load' || data?.variant === 'generator') {
+          const degree = rfEdges.filter(
+            (e) => e.source === node.id || e.target === node.id
+          ).length;
+          if (degree >= 1) return false;
+        }
       }
-    }
 
-    return true;
-  }, []);
+      return true;
+    },
+    [rfNodes, rfEdges]
+  );
 
   return (
     <div className="w-full h-full">

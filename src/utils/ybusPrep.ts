@@ -47,44 +47,67 @@ export function prepareYbusData(
     const lines: YbusLineData[] = [];
     const transformers: YbusTransformerData[] = [];
 
-    for (const edge of islandEdges) {
-      const sourceNode = island.nodes.find((n) => n.id === edge.source);
-      const targetNode = island.nodes.find((n) => n.id === edge.target);
-      if (!sourceNode || !targetNode || !edge.data) continue;
+    // Group edges by whether they touch a transformerNode
+    const transformerEdges = islandEdges.filter((e) => {
+      const src = island.nodes.find((n) => n.id === e.source);
+      const tgt = island.nodes.find((n) => n.id === e.target);
+      return src?.type === 'transformerNode' || tgt?.type === 'transformerNode';
+    });
+    const lineEdges = islandEdges.filter((e) => !transformerEdges.includes(e));
 
-      const isTransformerEdge =
-        sourceNode.type === 'transformerNode' || targetNode.type === 'transformerNode';
+    // Build transformer entries: each transformerNode connects two buses via two edges
+    const transformerNodeIds = new Set(
+      transformerEdges.flatMap((e) => {
+        const src = island.nodes.find((n) => n.id === e.source);
+        const tgt = island.nodes.find((n) => n.id === e.target);
+        return src?.type === 'transformerNode' ? [src.id] : [tgt!.id];
+      })
+    );
 
-      if (isTransformerEdge) {
-        // Transformer: Y = 1/(jX_pu), scaled by 1/tap²
-        const xPu = edge.data.x !== 0 ? edge.data.x : 0.1;
-        // tap ratio from transformer node data if available
-        const transformerNode =
-          sourceNode.type === 'transformerNode' ? sourceNode : targetNode;
-        const tap = (transformerNode.data as { tap_ratio?: number }).tap_ratio ?? 1.0;
-        // Y = 1/(j*xPu) = -j/xPu, scaled by 1/tap²
-        const scale = 1 / (tap * tap);
-        transformers.push({
-          fromBus: edge.source,
-          toBus: edge.target,
-          tap,
-          y_pu: { re: 0, im: (-1 / xPu) * scale },
-        });
-      } else {
-        // Transmission line: Z = R + jX, Y = 1/Z
-        const r = edge.data.r;
-        const x = edge.data.x;
-        const b = edge.data.b;
-        const denom = r * r + x * x;
-        const y_re = denom !== 0 ? r / denom : 0;
-        const y_im = denom !== 0 ? -x / denom : 0;
-        lines.push({
-          fromBus: edge.source,
-          toBus: edge.target,
-          y_series: { re: y_re, im: y_im },
-          b_shunt: b / 2,
-        });
-      }
+    for (const txId of transformerNodeIds) {
+      const txNode = island.nodes.find((n) => n.id === txId);
+      if (!txNode) continue;
+
+      const attachedEdges = transformerEdges.filter(
+        (e) => e.source === txId || e.target === txId
+      );
+      if (attachedEdges.length < 2) continue; // incomplete transformer, skip
+
+      const busIdA =
+        attachedEdges[0].source === txId
+          ? attachedEdges[0].target
+          : attachedEdges[0].source;
+      const busIdB =
+        attachedEdges[1].source === txId
+          ? attachedEdges[1].target
+          : attachedEdges[1].source;
+
+      const xPu = (txNode.data as { x_pu?: number }).x_pu ?? 0.1;
+      const tap = (txNode.data as { tap_ratio?: number }).tap_ratio ?? 1.0;
+      const scale = 1 / (tap * tap);
+      transformers.push({
+        fromBus: busIdA,
+        toBus: busIdB,
+        tap,
+        y_pu: { re: 0, im: (-1 / xPu) * scale },
+      });
+    }
+
+    // Transmission lines
+    for (const edge of lineEdges) {
+      if (!edge.data) continue;
+      const r = edge.data.r;
+      const x = edge.data.x;
+      const b = edge.data.b;
+      const denom = r * r + x * x;
+      const y_re = denom !== 0 ? r / denom : 0;
+      const y_im = denom !== 0 ? -x / denom : 0;
+      lines.push({
+        fromBus: edge.source,
+        toBus: edge.target,
+        y_series: { re: y_re, im: y_im },
+        b_shunt: b / 2,
+      });
     }
 
     const buses = island.nodes
