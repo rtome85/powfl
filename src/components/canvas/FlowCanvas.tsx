@@ -23,7 +23,8 @@ import {
   createLoadNode,
   createGeneratorNode,
 } from '../../utils/nodeFactory';
-import type { DragPayload, TransmissionEdgeData } from '../../types';
+import type { BusNodeData, DragPayload, TransmissionEdgeData } from '../../types';
+import NetworkStatus from './NetworkStatus';
 
 const nodeTypes = {
   busNode: BusNode,
@@ -150,6 +151,33 @@ export default function FlowCanvas() {
     [onEdgesChange]
   );
 
+  const isValidConnection = useCallback((connection: Connection): boolean => {
+    const { source, target } = connection;
+    if (source === target) return false;
+
+    const allNodes = useFlowStore.getState().nodes;
+    const sourceNode = allNodes.find((n) => n.id === source);
+    const targetNode = allNodes.find((n) => n.id === target);
+    if (!sourceNode || !targetNode) return false;
+
+    // At least one endpoint must be a busNode
+    if (sourceNode.type !== 'busNode' && targetNode.type !== 'busNode') return false;
+
+    // load/generator variant → max 1 connection
+    const allEdges = useFlowStore.getState().edges;
+    for (const node of [sourceNode, targetNode]) {
+      const data = node.data as BusNodeData;
+      if (data?.variant === 'load' || data?.variant === 'generator') {
+        const degree = allEdges.filter(
+          (e) => e.source === node.id || e.target === node.id
+        ).length;
+        if (degree >= 1) return false;
+      }
+    }
+
+    return true;
+  }, []);
+
   return (
     <div className="w-full h-full">
       <ReactFlow
@@ -164,12 +192,14 @@ export default function FlowCanvas() {
         onDragOver={onDragOver}
         onNodeDragStop={onNodeDragStop}
         onSelectionChange={onSelectionChange}
+        isValidConnection={isValidConnection}
         fitView
         deleteKeyCode="Delete"
       >
         <Background variant={BackgroundVariant.Dots} />
         <Controls />
         <MiniMap />
+        <NetworkStatus />
       </ReactFlow>
     </div>
   );

@@ -12,6 +12,7 @@ export function createBusNode(position: { x: number; y: number }): Node<BusNodeD
     data: {
       label: 'Bus',
       busType: 'PQ',
+      variant: 'bus' as const,
       v_nom: 110,
       v_mag: 1.0,
       v_ang: 0,
@@ -45,6 +46,7 @@ export function createLoadNode(position: { x: number; y: number }): Node<BusNode
     data: {
       label: 'Load',
       busType: 'PQ',
+      variant: 'load' as const,
       v_nom: 110,
       v_mag: 1.0,
       v_ang: 0,
@@ -64,6 +66,7 @@ export function createGeneratorNode(position: { x: number; y: number }): Node<Bu
       ...node.data,
       label: 'Generator',
       busType: 'PV',
+      variant: 'generator' as const,
       p_gen: 50,
     },
   };

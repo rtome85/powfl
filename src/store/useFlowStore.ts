@@ -1,24 +1,37 @@
 import { create } from 'zustand';
 import type { Node, Edge } from 'reactflow';
 import type { BusNodeData, TransformerNodeData, TransmissionEdgeData, SelectedElement } from '../types';
+import type { TopologyReport } from '../types/topology';
+import { analyzeTopology } from '../utils/topologyEngine';
 
 interface FlowState {
   nodes: Node[];
   edges: Edge[];
   selectedElement: SelectedElement;
+  topologyReport: TopologyReport | null;
   setNodes(nodes: Node[]): void;
   setEdges(edges: Edge[]): void;
   updateNodeData(id: string, data: Partial<BusNodeData | TransformerNodeData>): void;
   updateEdgeData(id: string, data: Partial<TransmissionEdgeData>): void;
   setSelectedElement(el: SelectedElement): void;
+  runTopologyAnalysis(): void;
 }
 
 export const useFlowStore = create<FlowState>((set) => ({
   nodes: [],
   edges: [],
   selectedElement: null,
-  setNodes: (nodes) => set({ nodes }),
-  setEdges: (edges) => set({ edges }),
+  topologyReport: null,
+  setNodes: (nodes) =>
+    set((state) => ({
+      nodes,
+      topologyReport: analyzeTopology(nodes, state.edges),
+    })),
+  setEdges: (edges) =>
+    set((state) => ({
+      edges,
+      topologyReport: analyzeTopology(state.nodes, edges),
+    })),
   updateNodeData: (id, data) =>
     set((state) => ({
       nodes: state.nodes.map((n) =>
@@ -32,4 +45,8 @@ export const useFlowStore = create<FlowState>((set) => ({
       ),
     })),
   setSelectedElement: (selectedElement) => set({ selectedElement }),
+  runTopologyAnalysis: () =>
+    set((state) => ({
+      topologyReport: analyzeTopology(state.nodes, state.edges),
+    })),
 }));
