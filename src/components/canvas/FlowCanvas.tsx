@@ -23,7 +23,8 @@ import {
   createLoadNode,
   createGeneratorNode,
 } from '../../utils/nodeFactory';
-import type { DragPayload, TransmissionEdgeData } from '../../types';
+import type { BusNodeData, DragPayload, TransmissionEdgeData } from '../../types';
+import NetworkStatus from './NetworkStatus';
 
 const nodeTypes = {
   busNode: BusNode,
@@ -150,6 +151,38 @@ export default function FlowCanvas() {
     [onEdgesChange]
   );
 
+  const isValidConnection = useCallback(
+    (connection: Connection): boolean => {
+      const { source, target } = connection;
+      if (source === target) return false;
+
+      const sourceNode = rfNodes.find((n) => n.id === source);
+      const targetNode = rfNodes.find((n) => n.id === target);
+      if (!sourceNode || !targetNode) return false;
+
+      // At least one endpoint must be a true bus (not a load/generator variant)
+      const isTrueBus = (n: typeof sourceNode) => {
+        const data = n.data as BusNodeData;
+        return n.type === 'busNode' && data?.variant !== 'load' && data?.variant !== 'generator';
+      };
+      if (!isTrueBus(sourceNode) && !isTrueBus(targetNode)) return false;
+
+      // load/generator variant → max 1 connection
+      for (const node of [sourceNode, targetNode]) {
+        const data = node.data as BusNodeData;
+        if (data?.variant === 'load' || data?.variant === 'generator') {
+          const degree = rfEdges.filter(
+            (e) => e.source === node.id || e.target === node.id
+          ).length;
+          if (degree >= 1) return false;
+        }
+      }
+
+      return true;
+    },
+    [rfNodes, rfEdges]
+  );
+
   return (
     <div className="w-full h-full">
       <ReactFlow
@@ -164,12 +197,14 @@ export default function FlowCanvas() {
         onDragOver={onDragOver}
         onNodeDragStop={onNodeDragStop}
         onSelectionChange={onSelectionChange}
+        isValidConnection={isValidConnection}
         fitView
         deleteKeyCode="Delete"
       >
         <Background variant={BackgroundVariant.Dots} />
         <Controls />
         <MiniMap />
+        <NetworkStatus />
       </ReactFlow>
     </div>
   );

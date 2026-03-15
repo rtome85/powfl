@@ -3,6 +3,7 @@ export type BusType = 'Slack' | 'PV' | 'PQ';
 export interface BusNodeData {
   label: string;
   busType: BusType;
+  variant?: 'bus' | 'load' | 'generator';
   v_nom: number;
   v_mag: number;
   v_ang: number;
