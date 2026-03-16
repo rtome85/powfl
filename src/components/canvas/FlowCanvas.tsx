@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -44,24 +44,48 @@ const defaultEdgeData: TransmissionEdgeData = {
 };
 
 export default function FlowCanvas() {
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const storeNodes = useFlowStore((s) => s.nodes);
+  const storeEdges = useFlowStore((s) => s.edges);
   const setStoreNodes = useFlowStore((s) => s.setNodes);
   const setStoreEdges = useFlowStore((s) => s.setEdges);
   const setSelectedElement = useFlowStore((s) => s.setSelectedElement);
+  const fitViewRequested = useFlowStore((s) => s.fitViewRequested);
+  const clearFitView = useFlowStore((s) => s.clearFitView);
+  const snapshotVersion = useFlowStore((s) => s.snapshotVersion);
+  const prevSnapshotVersion = useRef(snapshotVersion);
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState([]);
 
-  // Sync data from Zustand → RF (data only, never position)
+  // Full replacement when a snapshot is loaded
   useEffect(() => {
+    if (snapshotVersion !== prevSnapshotVersion.current) {
+      prevSnapshotVersion.current = snapshotVersion;
+      setRfNodes(structuredClone(storeNodes));
+      setRfEdges(structuredClone(storeEdges));
+      return;
+    }
+    // Sync data from Zustand → RF (data only, never position)
     setRfNodes((rfNds) =>
       rfNds.map((rfN) => {
         const s = storeNodes.find((n) => n.id === rfN.id);
         return s ? { ...rfN, data: s.data } : rfN;
       })
     );
-  }, [storeNodes, setRfNodes]);
+  }, [storeNodes, storeEdges, snapshotVersion, setRfNodes, setRfEdges]);
+
+  // FitView on request
+  useEffect(() => {
+    if (fitViewRequested) {
+      // Small delay to let RF render the new nodes first
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.2 });
+        clearFitView();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [fitViewRequested, fitView, clearFitView]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
