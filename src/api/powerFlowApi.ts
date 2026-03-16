@@ -2,6 +2,16 @@ import type { PowerFlowPayload, PowerFlowResponse } from '../types/powerFlow';
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
+export class PowerFlowError extends Error {
+  constructor(
+    message: string,
+    public readonly elementIds: string[] = [],
+  ) {
+    super(message);
+    this.name = 'PowerFlowError';
+  }
+}
+
 export async function postPowerFlow(
   payload: PowerFlowPayload
 ): Promise<PowerFlowResponse> {
@@ -17,18 +27,27 @@ export async function postPowerFlow(
     if (!res.ok) {
       const bodyText = await res.text();
       let message = `HTTP ${res.status}`;
+      let elementIds: string[] = [];
       try {
         const body = JSON.parse(bodyText);
-        message = body.detail ?? JSON.stringify(body);
+        const detail = body.detail;
+        if (typeof detail === 'object' && detail !== null) {
+          message = detail.message ?? JSON.stringify(detail);
+          elementIds = Array.isArray(detail.element_ids) ? detail.element_ids : [];
+        } else if (typeof detail === 'string') {
+          message = detail;
+        } else {
+          message = JSON.stringify(body);
+        }
       } catch {
         message += `: ${bodyText}`;
       }
-      throw new Error(message);
+      throw new PowerFlowError(message, elementIds);
     }
     return res.json() as Promise<PowerFlowResponse>;
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new Error(`Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
+      throw new PowerFlowError(`Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
     }
     throw err;
   } finally {

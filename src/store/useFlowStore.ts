@@ -4,7 +4,7 @@ import type { BusNodeData, TransformerNodeData, TransmissionEdgeData, SelectedEl
 import type { TopologyReport } from '../types/topology';
 import { analyzeTopology } from '../utils/topologyEngine';
 import { generatePowerFlowPayload } from '../utils/payloadGenerator';
-import { postPowerFlow } from '../api/powerFlowApi';
+import { postPowerFlow, PowerFlowError } from '../api/powerFlowApi';
 
 interface FlowState {
   nodes: Node[];
@@ -13,6 +13,7 @@ interface FlowState {
   topologyReport: TopologyReport | null;
   simulationStatus: 'idle' | 'loading' | 'success' | 'error';
   simulationError: string | null;
+  errorElementIds: string[];
   isSimulated: boolean;
   setNodes(nodes: Node[]): void;
   setEdges(edges: Edge[]): void;
@@ -30,25 +31,39 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   topologyReport: null,
   simulationStatus: 'idle',
   simulationError: null,
+  errorElementIds: [],
   isSimulated: false,
   setNodes: (nodes) =>
     set((state) => ({
       nodes,
       topologyReport: analyzeTopology(nodes, state.edges),
       isSimulated: false,
+      simulationStatus: 'idle',
+      simulationError: null,
+      errorElementIds: [],
     })),
   setEdges: (edges) =>
     set((state) => ({
       edges,
       topologyReport: analyzeTopology(state.nodes, edges),
       isSimulated: false,
+      simulationStatus: 'idle',
+      simulationError: null,
+      errorElementIds: [],
     })),
   updateNodeData: (id, data) =>
     set((state) => {
       const nodes = state.nodes.map((n) =>
         n.id === id ? { ...n, data: { ...n.data, ...data } } : n
       );
-      return { nodes, topologyReport: analyzeTopology(nodes, state.edges), isSimulated: false };
+      return {
+        nodes,
+        topologyReport: analyzeTopology(nodes, state.edges),
+        isSimulated: false,
+        simulationStatus: 'idle' as const,
+        simulationError: null,
+        errorElementIds: [],
+      };
     }),
   updateEdgeData: (id, data) =>
     set((state) => ({
@@ -56,6 +71,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         e.id === id ? { ...e, data: { ...e.data, ...data } } : e
       ),
       isSimulated: false,
+      simulationStatus: 'idle' as const,
+      simulationError: null,
+      errorElementIds: [],
     })),
   setSelectedElement: (selectedElement) => set({ selectedElement }),
   runTopologyAnalysis: () =>
@@ -65,7 +83,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   runSimulation: async () => {
     const { topologyReport, nodes, edges } = get();
     if (!topologyReport?.isReadyForCalculation) return;
-    set({ simulationStatus: 'loading', simulationError: null });
+    set({ simulationStatus: 'loading', simulationError: null, errorElementIds: [], isSimulated: false });
     try {
       const payload = generatePowerFlowPayload(
         topologyReport.islands,
@@ -125,9 +143,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         };
       });
     } catch (err) {
+      const errorElementIds = err instanceof PowerFlowError ? err.elementIds : [];
       set({
         simulationStatus: 'error',
         simulationError: err instanceof Error ? err.message : 'Unknown error',
+        errorElementIds,
       });
     }
   },
