@@ -38,6 +38,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       nodes,
       topologyReport: analyzeTopology(nodes, state.edges),
       isSimulated: false,
+      simulationStatus: 'idle',
+      simulationError: null,
       errorElementIds: [],
     })),
   setEdges: (edges) =>
@@ -45,6 +47,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       edges,
       topologyReport: analyzeTopology(state.nodes, edges),
       isSimulated: false,
+      simulationStatus: 'idle',
+      simulationError: null,
       errorElementIds: [],
     })),
   updateNodeData: (id, data) =>
@@ -52,7 +56,14 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       const nodes = state.nodes.map((n) =>
         n.id === id ? { ...n, data: { ...n.data, ...data } } : n
       );
-      return { nodes, topologyReport: analyzeTopology(nodes, state.edges), isSimulated: false, errorElementIds: [] };
+      return {
+        nodes,
+        topologyReport: analyzeTopology(nodes, state.edges),
+        isSimulated: false,
+        simulationStatus: 'idle' as const,
+        simulationError: null,
+        errorElementIds: [],
+      };
     }),
   updateEdgeData: (id, data) =>
     set((state) => ({
@@ -60,6 +71,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         e.id === id ? { ...e, data: { ...e.data, ...data } } : e
       ),
       isSimulated: false,
+      simulationStatus: 'idle' as const,
+      simulationError: null,
       errorElementIds: [],
     })),
   setSelectedElement: (selectedElement) => set({ selectedElement }),
@@ -70,7 +83,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   runSimulation: async () => {
     const { topologyReport, nodes, edges } = get();
     if (!topologyReport?.isReadyForCalculation) return;
-    set({ simulationStatus: 'loading', simulationError: null, errorElementIds: [] });
+    set({ simulationStatus: 'loading', simulationError: null, errorElementIds: [], isSimulated: false });
     try {
       const payload = generatePowerFlowPayload(
         topologyReport.islands,

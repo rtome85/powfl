@@ -46,6 +46,12 @@ def _validate_island(island: IslandIn) -> None:
                     f"Set a non-zero series reactance (X) for the transformer.",
                     element_ids=[br.branch_id],
                 )
+            if br.rating_mva <= 0:
+                raise NetworkValidationError(
+                    f'Transformer "{br.branch_id}" has thermal rating = {br.rating_mva} MVA. '
+                    f"Rating must be positive.",
+                    element_ids=[br.branch_id],
+                )
         else:
             if br.r_pu == 0 and br.x_pu == 0:
                 raise NetworkValidationError(
