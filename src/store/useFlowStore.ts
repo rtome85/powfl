@@ -15,7 +15,7 @@ interface FlowState {
   simulationError: string | null;
   errorElementIds: string[];
   isSimulated: boolean;
-  fitViewRequested: boolean;
+  fitViewRequestId: number;
   snapshotVersion: number;
   setNodes(nodes: Node[]): void;
   setEdges(edges: Edge[]): void;
@@ -25,7 +25,6 @@ interface FlowState {
   runTopologyAnalysis(): void;
   runSimulation(): Promise<void>;
   requestFitView(): void;
-  clearFitView(): void;
   loadSnapshotData(nodes: Node[], edges: Edge[], simulationStatus: 'idle' | 'loading' | 'success' | 'error', isSimulated: boolean): void;
 }
 
@@ -38,7 +37,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   simulationError: null,
   errorElementIds: [],
   isSimulated: false,
-  fitViewRequested: false,
+  fitViewRequestId: 0,
   snapshotVersion: 0,
   setNodes: (nodes) =>
     set((state) => ({
@@ -83,8 +82,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       errorElementIds: [],
     })),
   setSelectedElement: (selectedElement) => set({ selectedElement }),
-  requestFitView: () => set({ fitViewRequested: true }),
-  clearFitView: () => set({ fitViewRequested: false }),
+  requestFitView: () => set((state) => ({ fitViewRequestId: state.fitViewRequestId + 1 })),
   loadSnapshotData: (nodes, edges, simulationStatus, isSimulated) =>
     set((state) => ({
       nodes,
@@ -95,7 +93,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       simulationError: null,
       errorElementIds: [],
       selectedElement: null,
-      fitViewRequested: true,
+      fitViewRequestId: state.fitViewRequestId + 1,
       snapshotVersion: state.snapshotVersion + 1,
     })),
   runTopologyAnalysis: () =>

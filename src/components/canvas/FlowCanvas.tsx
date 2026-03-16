@@ -50,10 +50,10 @@ export default function FlowCanvas() {
   const setStoreNodes = useFlowStore((s) => s.setNodes);
   const setStoreEdges = useFlowStore((s) => s.setEdges);
   const setSelectedElement = useFlowStore((s) => s.setSelectedElement);
-  const fitViewRequested = useFlowStore((s) => s.fitViewRequested);
-  const clearFitView = useFlowStore((s) => s.clearFitView);
+  const fitViewRequestId = useFlowStore((s) => s.fitViewRequestId);
   const snapshotVersion = useFlowStore((s) => s.snapshotVersion);
   const prevSnapshotVersion = useRef(snapshotVersion);
+  const prevFitViewRequestId = useRef(fitViewRequestId);
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState([]);
@@ -66,26 +66,32 @@ export default function FlowCanvas() {
       setRfEdges(structuredClone(storeEdges));
       return;
     }
-    // Sync data from Zustand → RF (data only, never position)
+    // Sync data from Zustand → RF (data only, never position/layout)
     setRfNodes((rfNds) =>
       rfNds.map((rfN) => {
         const s = storeNodes.find((n) => n.id === rfN.id);
         return s ? { ...rfN, data: s.data } : rfN;
       })
     );
+    setRfEdges((rfEds) =>
+      rfEds.map((rfE) => {
+        const s = storeEdges.find((e) => e.id === rfE.id);
+        return s ? { ...rfE, data: s.data } : rfE;
+      })
+    );
   }, [storeNodes, storeEdges, snapshotVersion, setRfNodes, setRfEdges]);
 
-  // FitView on request
+  // FitView on request (reacts to counter changes)
   useEffect(() => {
-    if (fitViewRequested) {
+    if (fitViewRequestId !== prevFitViewRequestId.current) {
+      prevFitViewRequestId.current = fitViewRequestId;
       // Small delay to let RF render the new nodes first
       const timer = setTimeout(() => {
         fitView({ padding: 0.2 });
-        clearFitView();
       }, 50);
       return () => clearTimeout(timer);
     }
-  }, [fitViewRequested, fitView, clearFitView]);
+  }, [fitViewRequestId, fitView]);
 
   const onConnect = useCallback(
     (connection: Connection) => {

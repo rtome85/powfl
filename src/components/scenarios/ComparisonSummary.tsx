@@ -34,20 +34,20 @@ export default function ComparisonSummary({
   snapshotA,
   snapshotB,
 }: ComparisonSummaryProps) {
-  const lossA = totalLosses(snapshotA);
-  const lossB = totalLosses(snapshotB);
-  const lossDelta = lossB - lossA;
+  const bothSimulated = snapshotA.isSimulated && snapshotB.isSimulated;
 
-  const vMinA = minVoltage(snapshotA);
-  const vMinB = minVoltage(snapshotB);
+  const lossA = bothSimulated ? totalLosses(snapshotA) : null;
+  const lossB = bothSimulated ? totalLosses(snapshotB) : null;
+  const lossDelta = lossA != null && lossB != null ? lossB - lossA : null;
+
+  const vMinA = bothSimulated ? minVoltage(snapshotA) : null;
+  const vMinB = bothSimulated ? minVoltage(snapshotB) : null;
   const vDelta = vMinA != null && vMinB != null ? vMinB - vMinA : null;
-
-  const noSim = !snapshotA.isSimulated || !snapshotB.isSimulated;
 
   return (
     <div className="border border-gray-200 rounded-lg bg-gray-50 p-3 space-y-2 text-xs">
       <h4 className="font-semibold text-gray-700 text-xs">Comparison</h4>
-      {noSim && (
+      {!bothSimulated && (
         <p className="text-amber-600">
           One or both scenarios have no simulation results.
         </p>
@@ -62,32 +62,36 @@ export default function ComparisonSummary({
         </span>
 
         <span className="font-medium">Total Losses (MW)</span>
-        <span>{lossA.toFixed(4)}</span>
-        <span>{lossB.toFixed(4)}</span>
+        <span>{lossA != null ? lossA.toFixed(4) : '—'}</span>
+        <span>{lossB != null ? lossB.toFixed(4) : '—'}</span>
 
         <span className="font-medium">Min Voltage (pu)</span>
         <span>{vMinA != null ? vMinA.toFixed(4) : '—'}</span>
         <span>{vMinB != null ? vMinB.toFixed(4) : '—'}</span>
       </div>
 
-      <div className="pt-1 border-t border-gray-200 space-y-1 text-gray-600">
-        <div>
-          <span className="font-medium">Loss delta: </span>
-          <span className={lossDelta > 0 ? 'text-red-600' : 'text-green-600'}>
-            {fmt(lossDelta)} MW
-          </span>
+      {bothSimulated && (
+        <div className="pt-1 border-t border-gray-200 space-y-1 text-gray-600">
+          {lossDelta != null && (
+            <div>
+              <span className="font-medium">Loss delta: </span>
+              <span className={lossDelta > 0 ? 'text-red-600' : 'text-green-600'}>
+                {fmt(lossDelta)} MW
+              </span>
+            </div>
+          )}
+          {vDelta != null && (
+            <div>
+              <span className="font-medium">Voltage delta: </span>
+              <span
+                className={vDelta < 0 ? 'text-red-600' : 'text-green-600'}
+              >
+                {fmt(vDelta)} pu
+              </span>
+            </div>
+          )}
         </div>
-        {vDelta != null && (
-          <div>
-            <span className="font-medium">Voltage delta: </span>
-            <span
-              className={vDelta < 0 ? 'text-red-600' : 'text-green-600'}
-            >
-              {fmt(vDelta)} pu
-            </span>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
