@@ -29,10 +29,19 @@ export default function NetworkStatus() {
           </button>
         </>
       )}
+      {simulationStatus === 'success' && (
+        <div className="flex items-center gap-1.5 bg-green-50 border border-green-300 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
+          <span>✅</span>
+          <span>Simulação concluída com sucesso</span>
+        </div>
+      )}
       {simulationStatus === 'error' && simulationError && (
-        <div className="flex items-center gap-1.5 bg-red-50 border border-red-300 text-red-800 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
-          <span>❌</span>
-          <span>{simulationError}</span>
+        <div className="max-w-xs bg-red-50 border border-red-300 text-red-800 text-xs font-medium px-2.5 py-2 rounded-lg shadow-sm">
+          <div className="flex items-center gap-1.5 font-semibold mb-1">
+            <span>❌</span>
+            <span>Rede Instável</span>
+          </div>
+          <p className="leading-relaxed">{simulationError}</p>
         </div>
       )}
       {errors.map((err, i) => (

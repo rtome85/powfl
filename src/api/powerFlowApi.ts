@@ -14,7 +14,16 @@ export async function postPowerFlow(
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    if (!res.ok) {
+      let message = `HTTP ${res.status}`;
+      try {
+        const body = await res.json();
+        message = body.detail ?? JSON.stringify(body);
+      } catch {
+        message += `: ${await res.text()}`;
+      }
+      throw new Error(message);
+    }
     return res.json() as Promise<PowerFlowResponse>;
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {

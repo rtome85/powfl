@@ -28,6 +28,12 @@ export interface TransmissionEdgeData {
   x: number;
   b: number;
   rating_mva: number;
+  // Populated after simulation
+  p_from_mw?: number;
+  q_from_mvar?: number;
+  p_to_mw?: number;
+  q_to_mvar?: number;
+  loading_percent?: number;
 }
 
 export type SelectedElement =
