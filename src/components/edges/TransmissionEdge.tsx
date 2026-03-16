@@ -34,12 +34,15 @@ function TransmissionEdge({
   });
 
   const isSimulated = useFlowStore((s) => s.isSimulated);
+  const hasError = useFlowStore((s) => s.errorElementIds.includes(id));
   const hasResults = isSimulated && data?.loading_percent != null;
-  const strokeColor = hasResults
-    ? getLoadingColor(data!.loading_percent!)
-    : selected
-      ? '#6366f1'
-      : '#94a3b8';
+  const strokeColor = hasError
+    ? '#ef4444' // red-500
+    : hasResults
+      ? getLoadingColor(data!.loading_percent!)
+      : selected
+        ? '#6366f1'
+        : '#94a3b8';
 
   return (
     <>
@@ -71,9 +74,11 @@ function TransmissionEdge({
             pointerEvents: 'all',
           }}
           className={`nodrag nopan rounded-lg px-2 py-1 text-[10px] font-mono shadow-sm transition-colors ${
-            selected
-              ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
-              : 'bg-white text-gray-500 ring-1 ring-gray-200'
+            hasError
+              ? 'bg-red-50 text-red-700 ring-1 ring-red-300'
+              : selected
+                ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
+                : 'bg-white text-gray-500 ring-1 ring-gray-200'
           }`}
         >
           {hasResults ? (

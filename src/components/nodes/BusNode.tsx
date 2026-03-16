@@ -39,16 +39,18 @@ function getVoltageDot(v_mag: number, isSimulated: boolean): string | null {
   return 'bg-green-500';
 }
 
-function BusNode({ data, selected }: NodeProps<BusNodeData>) {
+function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
   const cfg = typeConfig[data.busType] ?? typeConfig.PQ;
   const isSimulated = useFlowStore((s) => s.isSimulated);
+  const hasError = useFlowStore((s) => s.errorElementIds.includes(id));
 
-  const borderClass = getVoltageBorder(data.v_mag, isSimulated) ?? cfg.border;
-  const dotClass = getVoltageDot(data.v_mag, isSimulated) ?? cfg.dot;
+  const borderClass = hasError ? 'border-red-500' : getVoltageBorder(data.v_mag, isSimulated) ?? cfg.border;
+  const dotClass = hasError ? 'bg-red-500' : getVoltageDot(data.v_mag, isSimulated) ?? cfg.dot;
+  const bgClass = hasError ? 'bg-red-50' : 'bg-white';
 
   return (
     <div
-      className={`relative flex items-center gap-2.5 px-3 py-2.5 bg-white rounded-xl border-2 ${borderClass} min-w-[160px] transition-shadow ${
+      className={`relative flex items-center gap-2.5 px-3 py-2.5 ${bgClass} rounded-xl border-2 ${borderClass} min-w-[160px] transition-shadow ${
         selected
           ? `shadow-lg ${cfg.glow} ring-2 ring-indigo-400 ring-offset-1`
           : `shadow-sm hover:shadow-md ${cfg.glow}`

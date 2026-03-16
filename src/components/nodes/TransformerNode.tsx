@@ -1,11 +1,17 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import type { TransformerNodeData } from '../../types';
+import { useFlowStore } from '../../store/useFlowStore';
 
-function TransformerNode({ data, selected }: NodeProps<TransformerNodeData>) {
+function TransformerNode({ id, data, selected }: NodeProps<TransformerNodeData>) {
+  const hasError = useFlowStore((s) => s.errorElementIds.includes(id));
+
+  const borderClass = hasError ? 'border-red-500' : 'border-violet-400';
+  const bgClass = hasError ? 'bg-red-50' : 'bg-white';
+
   return (
     <div
-      className={`relative flex flex-col items-center px-3 py-2.5 bg-white rounded-xl border-2 border-violet-400 w-[130px] transition-shadow ${
+      className={`relative flex flex-col items-center px-3 py-2.5 ${bgClass} rounded-xl border-2 ${borderClass} w-[130px] transition-shadow ${
         selected
           ? 'shadow-lg shadow-violet-100 ring-2 ring-indigo-400 ring-offset-1'
           : 'shadow-sm hover:shadow-md shadow-violet-50'

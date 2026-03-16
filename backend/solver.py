@@ -20,8 +20,52 @@ class PowerFlowDivergenceError(Exception):
         super().__init__(f"Power flow did not converge for island {island_id}")
 
 
+class NetworkValidationError(Exception):
+    """Raised when the network has invalid parameters that prevent calculation."""
+
+    def __init__(self, message: str, element_ids: list[str] | None = None):
+        self.element_ids = element_ids or []
+        super().__init__(message)
+
+
+def _validate_island(island: IslandIn) -> None:
+    """Pre-validate island data before building the pandapower network."""
+    for bus in island.buses:
+        if bus.v_nom_kv <= 0:
+            raise NetworkValidationError(
+                f'Bus "{bus.label}" ({bus.id}) has nominal voltage = {bus.v_nom_kv} kV. '
+                f"Nominal voltage must be positive.",
+                element_ids=[bus.id],
+            )
+
+    for br in island.branches:
+        if br.is_transformer:
+            if br.x_pu == 0 and br.r_pu == 0:
+                raise NetworkValidationError(
+                    f'Transformer "{br.branch_id}" has both R and X set to 0 p.u. '
+                    f"Set a non-zero series reactance (X) for the transformer.",
+                    element_ids=[br.branch_id],
+                )
+        else:
+            if br.r_pu == 0 and br.x_pu == 0:
+                raise NetworkValidationError(
+                    f'Transmission line "{br.branch_id}" (from "{br.from_bus}" to "{br.to_bus}") '
+                    f"has both R and X set to 0 p.u. "
+                    f"Set non-zero impedance values in the line properties.",
+                    element_ids=[br.branch_id],
+                )
+            if br.rating_mva <= 0:
+                raise NetworkValidationError(
+                    f'Transmission line "{br.branch_id}" has thermal rating = {br.rating_mva} MVA. '
+                    f"Rating must be positive.",
+                    element_ids=[br.branch_id],
+                )
+
+
 def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
     """Build a pandapower network from *island* and run a Newton-Raphson power flow."""
+
+    _validate_island(island)
 
     net = pp.create_empty_network(sn_mva=s_base_mva)
 

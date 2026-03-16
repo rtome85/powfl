@@ -8,7 +8,7 @@ from .models import (
     PowerFlowRequest,
     PowerFlowResponse,
 )
-from .solver import PowerFlowDivergenceError, solve_island
+from .solver import NetworkValidationError, PowerFlowDivergenceError, solve_island
 
 app = FastAPI(title="PowFL Power Flow API")
 
@@ -31,19 +31,33 @@ def calculate_power_flow(payload: PowerFlowRequest) -> PowerFlowResponse:
         try:
             result = solve_island(island, payload.s_base_mva)
             island_results.append(result)
+        except NetworkValidationError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": str(exc),
+                    "element_ids": exc.element_ids,
+                },
+            )
         except PowerFlowDivergenceError as exc:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    f"O algoritmo de Newton-Raphson não convergiu para a ilha {exc.island_id}. "
-                    "Verifique se a rede está corretamente configurada "
-                    "(impedâncias, tensões nominais, geração vs. carga)."
-                ),
+                detail={
+                    "message": (
+                        f"Newton-Raphson did not converge for island {exc.island_id}. "
+                        "Check the network configuration "
+                        "(impedances, nominal voltages, generation vs. load)."
+                    ),
+                    "element_ids": [],
+                },
             )
         except Exception as exc:
             raise HTTPException(
                 status_code=500,
-                detail=f"Erro interno ao calcular power flow: {exc}",
+                detail={
+                    "message": f"Internal error during power flow calculation: {exc}",
+                    "element_ids": [],
+                },
             ) from exc
 
     return PowerFlowResponse(
