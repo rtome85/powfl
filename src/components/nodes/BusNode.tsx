@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import type { BusNodeData } from '../../types';
+import { useFlowStore } from '../../store/useFlowStore';
 
 const typeConfig: Record<string, { border: string; badge: string; dot: string; glow: string }> = {
   Slack: {
@@ -23,12 +24,31 @@ const typeConfig: Record<string, { border: string; badge: string; dot: string; g
   },
 };
 
+/** Return a voltage-based border color when simulation results are available. */
+function getVoltageBorder(v_mag: number, isSimulated: boolean): string | null {
+  if (!isSimulated) return null;
+  if (v_mag < 0.95) return 'border-red-500';
+  if (v_mag > 1.05) return 'border-yellow-500';
+  return 'border-green-500';
+}
+
+function getVoltageDot(v_mag: number, isSimulated: boolean): string | null {
+  if (!isSimulated) return null;
+  if (v_mag < 0.95) return 'bg-red-500';
+  if (v_mag > 1.05) return 'bg-yellow-500';
+  return 'bg-green-500';
+}
+
 function BusNode({ data, selected }: NodeProps<BusNodeData>) {
   const cfg = typeConfig[data.busType] ?? typeConfig.PQ;
+  const isSimulated = useFlowStore((s) => s.isSimulated);
+
+  const borderClass = getVoltageBorder(data.v_mag, isSimulated) ?? cfg.border;
+  const dotClass = getVoltageDot(data.v_mag, isSimulated) ?? cfg.dot;
 
   return (
     <div
-      className={`relative flex items-center gap-2.5 px-3 py-2.5 bg-white rounded-xl border-2 ${cfg.border} min-w-[160px] transition-shadow ${
+      className={`relative flex items-center gap-2.5 px-3 py-2.5 bg-white rounded-xl border-2 ${borderClass} min-w-[160px] transition-shadow ${
         selected
           ? `shadow-lg ${cfg.glow} ring-2 ring-indigo-400 ring-offset-1`
           : `shadow-sm hover:shadow-md ${cfg.glow}`
@@ -37,7 +57,7 @@ function BusNode({ data, selected }: NodeProps<BusNodeData>) {
       <Handle type="target" position={Position.Left} />
 
       {/* Color accent dot */}
-      <div className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+      <div className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
 
       <div className="flex flex-col gap-1 flex-1 min-w-0">
         <span className="text-xs font-semibold text-gray-900 leading-none truncate">{data.label}</span>

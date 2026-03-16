@@ -13,6 +13,7 @@ interface FlowState {
   topologyReport: TopologyReport | null;
   simulationStatus: 'idle' | 'loading' | 'success' | 'error';
   simulationError: string | null;
+  isSimulated: boolean;
   setNodes(nodes: Node[]): void;
   setEdges(edges: Edge[]): void;
   updateNodeData(id: string, data: Partial<BusNodeData | TransformerNodeData>): void;
@@ -29,28 +30,32 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   topologyReport: null,
   simulationStatus: 'idle',
   simulationError: null,
+  isSimulated: false,
   setNodes: (nodes) =>
     set((state) => ({
       nodes,
       topologyReport: analyzeTopology(nodes, state.edges),
+      isSimulated: false,
     })),
   setEdges: (edges) =>
     set((state) => ({
       edges,
       topologyReport: analyzeTopology(state.nodes, edges),
+      isSimulated: false,
     })),
   updateNodeData: (id, data) =>
     set((state) => {
       const nodes = state.nodes.map((n) =>
         n.id === id ? { ...n, data: { ...n.data, ...data } } : n
       );
-      return { nodes, topologyReport: analyzeTopology(nodes, state.edges) };
+      return { nodes, topologyReport: analyzeTopology(nodes, state.edges), isSimulated: false };
     }),
   updateEdgeData: (id, data) =>
     set((state) => ({
       edges: state.edges.map((e) =>
         e.id === id ? { ...e, data: { ...e.data, ...data } } : e
       ),
+      isSimulated: false,
     })),
   setSelectedElement: (selectedElement) => set({ selectedElement }),
   runTopologyAnalysis: () =>
@@ -80,22 +85,43 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         });
         return;
       }
-      // Batch-apply all bus results in one set() to avoid N topology re-analyses
+      // Batch-apply all bus + branch results in one set()
       set((state) => {
-        const resultMap = new Map(
+        const busMap = new Map(
           result.islands.flatMap((i) => i.buses.map((b) => [b.id, b]))
         );
+        const branchMap = new Map(
+          result.islands.flatMap((i) => i.branches.map((br) => [br.branch_id, br]))
+        );
         const updatedNodes = state.nodes.map((n) => {
-          const r = resultMap.get(n.id);
+          const r = busMap.get(n.id);
           return r
             ? { ...n, data: { ...n.data, v_mag: r.v_mag_pu, v_ang: r.v_ang_deg } }
             : n;
         });
+        const updatedEdges = state.edges.map((e) => {
+          const br = branchMap.get(e.id);
+          return br
+            ? {
+                ...e,
+                data: {
+                  ...e.data,
+                  p_from_mw: br.p_from_mw,
+                  q_from_mvar: br.q_from_mvar,
+                  p_to_mw: br.p_to_mw,
+                  q_to_mvar: br.q_to_mvar,
+                  loading_percent: br.loading_percent,
+                },
+              }
+            : e;
+        });
         return {
           nodes: updatedNodes,
-          topologyReport: analyzeTopology(updatedNodes, state.edges),
+          edges: updatedEdges,
+          topologyReport: analyzeTopology(updatedNodes, updatedEdges),
           simulationStatus: 'success' as const,
           simulationError: null,
+          isSimulated: true,
         };
       });
     } catch (err) {
