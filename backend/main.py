@@ -42,9 +42,9 @@ def calculate_power_flow(payload: PowerFlowRequest) -> PowerFlowResponse:
             )
         except Exception as exc:
             raise HTTPException(
-                status_code=400,
-                detail=f"Erro ao calcular power flow: {exc}",
-            )
+                status_code=500,
+                detail=f"Erro interno ao calcular power flow: {exc}",
+            ) from exc
 
     return PowerFlowResponse(
         status="success",

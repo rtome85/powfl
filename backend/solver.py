@@ -96,6 +96,15 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
             vk_percent = br.x_pu * 100.0
             vkr_percent = br.r_pu * 100.0
 
+            # Compute tap parameters so pandapower applies the correct ratio.
+            # Effective tap = 1 + (tap_pos - tap_neutral) * tap_step_percent / 100
+            if br.tap == 1.0:
+                tap_pos, tap_step = 0, 1.0
+            elif br.tap > 1.0:
+                tap_pos, tap_step = 1, (br.tap - 1.0) * 100.0
+            else:
+                tap_pos, tap_step = -1, (1.0 - br.tap) * 100.0
+
             idx = pp.create_transformer_from_parameters(
                 net,
                 hv_bus=hv_bus,
@@ -107,9 +116,9 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
                 vkr_percent=vkr_percent,
                 pfe_kw=0,
                 i0_percent=0,
-                tap_pos=0,
+                tap_pos=tap_pos,
                 tap_neutral=0,
-                tap_step_percent=abs(br.tap - 1.0) * 100.0 if br.tap != 1.0 else 1.0,
+                tap_step_percent=tap_step,
                 tap_side="hv",
                 name=br.branch_id,
             )
