@@ -1,9 +1,15 @@
+import { useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import Toolbox from './Toolbox';
 import PropertiesPanel from './PropertiesPanel';
 import FlowCanvas from '../canvas/FlowCanvas';
+import ScenariosPanel from '../scenarios/ScenariosPanel';
+
+type RightTab = 'properties' | 'scenarios';
 
 export default function AppShell() {
+  const [rightTab, setRightTab] = useState<RightTab>('properties');
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50">
       {/* Left sidebar — Toolbox */}
@@ -29,9 +35,31 @@ export default function AppShell() {
         </ReactFlowProvider>
       </main>
 
-      {/* Right sidebar — Properties */}
+      {/* Right sidebar — Tabs */}
       <aside className="w-72 shrink-0 flex flex-col bg-white border-l border-gray-200 shadow-sm z-10">
-        <PropertiesPanel />
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setRightTab('properties')}
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${
+              rightTab === 'properties'
+                ? 'text-indigo-600 border-b-2 border-indigo-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Properties
+          </button>
+          <button
+            onClick={() => setRightTab('scenarios')}
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${
+              rightTab === 'scenarios'
+                ? 'text-indigo-600 border-b-2 border-indigo-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Scenarios
+          </button>
+        </div>
+        {rightTab === 'properties' ? <PropertiesPanel /> : <ScenariosPanel />}
       </aside>
     </div>
   );

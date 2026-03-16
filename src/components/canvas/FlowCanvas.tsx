@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -44,24 +44,54 @@ const defaultEdgeData: TransmissionEdgeData = {
 };
 
 export default function FlowCanvas() {
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const storeNodes = useFlowStore((s) => s.nodes);
+  const storeEdges = useFlowStore((s) => s.edges);
   const setStoreNodes = useFlowStore((s) => s.setNodes);
   const setStoreEdges = useFlowStore((s) => s.setEdges);
   const setSelectedElement = useFlowStore((s) => s.setSelectedElement);
+  const fitViewRequestId = useFlowStore((s) => s.fitViewRequestId);
+  const snapshotVersion = useFlowStore((s) => s.snapshotVersion);
+  const prevSnapshotVersion = useRef(snapshotVersion);
+  const prevFitViewRequestId = useRef(fitViewRequestId);
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState([]);
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState([]);
 
-  // Sync data from Zustand → RF (data only, never position)
+  // Full replacement when a snapshot is loaded
   useEffect(() => {
+    if (snapshotVersion !== prevSnapshotVersion.current) {
+      prevSnapshotVersion.current = snapshotVersion;
+      setRfNodes(structuredClone(storeNodes));
+      setRfEdges(structuredClone(storeEdges));
+      return;
+    }
+    // Sync data from Zustand → RF (data only, never position/layout)
     setRfNodes((rfNds) =>
       rfNds.map((rfN) => {
         const s = storeNodes.find((n) => n.id === rfN.id);
         return s ? { ...rfN, data: s.data } : rfN;
       })
     );
-  }, [storeNodes, setRfNodes]);
+    setRfEdges((rfEds) =>
+      rfEds.map((rfE) => {
+        const s = storeEdges.find((e) => e.id === rfE.id);
+        return s ? { ...rfE, data: s.data } : rfE;
+      })
+    );
+  }, [storeNodes, storeEdges, snapshotVersion, setRfNodes, setRfEdges]);
+
+  // FitView on request (reacts to counter changes)
+  useEffect(() => {
+    if (fitViewRequestId !== prevFitViewRequestId.current) {
+      prevFitViewRequestId.current = fitViewRequestId;
+      // Small delay to let RF render the new nodes first
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.2 });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [fitViewRequestId, fitView]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
