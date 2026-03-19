@@ -9,6 +9,7 @@ export interface BusPayload {
   q_gen_mvar: number;
   p_load_mw: number;
   q_load_mvar: number;
+  c_factor: number;
 }
 
 export interface BranchPayload {
@@ -21,6 +22,7 @@ export interface BranchPayload {
   rating_mva: number;
   is_transformer: boolean;
   tap: number;
+  vkr_percent?: number;
 }
 
 export interface IslandPayload {

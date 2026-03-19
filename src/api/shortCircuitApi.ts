@@ -1,26 +1,15 @@
-import type { PowerFlowPayload, PowerFlowResponse } from '../types/powerFlow';
+import type { ShortCircuitRequest, ShortCircuitResponse } from '../types/shortCircuit';
+import { PowerFlowError } from './powerFlowApi';
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
-export class PowerFlowError extends Error {
-  readonly elementIds: string[];
-  constructor(
-    message: string,
-    elementIds: string[] = [],
-  ) {
-    super(message);
-    this.name = 'PowerFlowError';
-    this.elementIds = elementIds;
-  }
-}
-
-export async function postPowerFlow(
-  payload: PowerFlowPayload
-): Promise<PowerFlowResponse> {
+export async function postShortCircuit(
+  payload: ShortCircuitRequest
+): Promise<ShortCircuitResponse> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch('/api/calculate-power-flow', {
+    const res = await fetch('/api/calculate-short-circuit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -46,7 +35,7 @@ export async function postPowerFlow(
       }
       throw new PowerFlowError(message, elementIds);
     }
-    return res.json() as Promise<PowerFlowResponse>;
+    return res.json() as Promise<ShortCircuitResponse>;
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new PowerFlowError(`Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);

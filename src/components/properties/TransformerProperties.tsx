@@ -72,6 +72,11 @@ export default function TransformerProperties({ node }: Props) {
               onChange={(e) => update({ x_pu: parseFloat(e.target.value) || 0 })} />
           </div>
         </div>
+        <div>
+          <label className={labelCls}>Vkr (%)</label>
+          <input type="number" step="0.1" className={inputCls} value={data.vkr_percent ?? 1.0}
+            onChange={(e) => update({ vkr_percent: parseFloat(e.target.value) || 0 })} />
+        </div>
       </section>
     </div>
   );

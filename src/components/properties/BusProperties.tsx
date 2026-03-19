@@ -1,9 +1,11 @@
 import type { Node } from 'reactflow';
 import type { BusNodeData, BusType } from '../../types';
 import { useFlowStore } from '../../store/useFlowStore';
+import type { TopologyReport } from '../../types/topology';
 
 interface Props {
   node: Node<BusNodeData>;
+  onOpenScReport?: () => void;
 }
 
 const busTypes: BusType[] = ['Slack', 'PV', 'PQ'];
@@ -17,10 +19,17 @@ const busTypeMeta: Record<BusType, { color: string; desc: string }> = {
   PQ: { color: 'bg-slate-400', desc: 'Load bus' },
 };
 
-export default function BusProperties({ node }: Props) {
+export default function BusProperties({ node, onOpenScReport }: Props) {
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const topologyReport = useFlowStore((s) => s.topologyReport) as TopologyReport | null;
+  const scStatus = useFlowStore((s) => s.scStatus);
+  const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
+  const runShortCircuit = useFlowStore((s) => s.runShortCircuit);
+  const clearShortCircuit = useFlowStore((s) => s.clearShortCircuit);
   const { data, id } = node;
   const update = (patch: Partial<BusNodeData>) => updateNodeData(id, patch);
+  const canRunSC = topologyReport?.isReadyForCalculation === true;
+  const scDone = scStatus === 'success' && scFaultBusId === id;
 
   return (
     <div className="p-4 flex flex-col gap-5">
@@ -116,6 +125,58 @@ export default function BusProperties({ node }: Props) {
               onChange={(e) => update({ q_load: parseFloat(e.target.value) || 0 })} />
           </div>
         </div>
+      </section>
+
+      {/* IEC 60909 */}
+      <section className="flex flex-col gap-3">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">IEC 60909</p>
+        <div>
+          <label className={labelCls}>Voltage Factor (c)</label>
+          <input type="number" step="0.01" className={inputCls} value={data.c_factor ?? 1.1}
+            onChange={(e) => update({ c_factor: parseFloat(e.target.value) || 1.1 })} />
+        </div>
+      </section>
+
+      {/* Short-circuit trigger */}
+      <section className="pt-2 border-t border-gray-100 flex flex-col gap-2">
+        {!scDone ? (
+          <button
+            disabled={!canRunSC || scStatus === 'loading'}
+            onClick={() => runShortCircuit(id)}
+            className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              canRunSC && scStatus !== 'loading'
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {scStatus === 'loading' ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Calculating...
+              </span>
+            ) : (
+              'Simulate Short-Circuit'
+            )}
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={onOpenScReport}
+              className="w-full py-2.5 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            >
+              View Report
+            </button>
+            <button
+              onClick={clearShortCircuit}
+              className="w-full py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+            >
+              Clear Short-Circuit
+            </button>
+          </>
+        )}
       </section>
     </div>
   );

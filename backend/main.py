@@ -7,7 +7,10 @@ from .models import (
     IslandResult,
     PowerFlowRequest,
     PowerFlowResponse,
+    ShortCircuitRequest,
+    ShortCircuitResponse,
 )
+from .sc_solver import solve_short_circuit
 from .solver import NetworkValidationError, PowerFlowDivergenceError, solve_island
 
 app = FastAPI(title="PowFL Power Flow API")
@@ -65,3 +68,25 @@ def calculate_power_flow(payload: PowerFlowRequest) -> PowerFlowResponse:
         message="Power flow converged for all islands",
         islands=island_results,
     )
+
+
+@app.post("/calculate-short-circuit", response_model=ShortCircuitResponse)
+def calculate_short_circuit(payload: ShortCircuitRequest) -> ShortCircuitResponse:
+    try:
+        return solve_short_circuit(payload)
+    except NetworkValidationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": str(exc),
+                "element_ids": exc.element_ids,
+            },
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": f"Internal error during short-circuit calculation: {exc}",
+                "element_ids": [],
+            },
+        ) from exc
