@@ -34,7 +34,14 @@ def solve_short_circuit(request: ShortCircuitRequest) -> ShortCircuitResponse:
             fault_bus_id=fault_bus_id,
         )
 
-    net, bus_idx, branch_map = build_pandapower_network(target_island, s_base_mva)
+    try:
+        net, bus_idx, branch_map = build_pandapower_network(target_island, s_base_mva)
+    except NetworkValidationError as exc:
+        return ShortCircuitResponse(
+            status="error",
+            message=str(exc),
+            fault_bus_id=fault_bus_id,
+        )
 
     if fault_bus_id not in bus_idx:
         return ShortCircuitResponse(
@@ -101,7 +108,11 @@ def solve_short_circuit(request: ShortCircuitRequest) -> ShortCircuitResponse:
                 ikss = float(net.res_line_sc.at[pp_idx, "ikss_ka"])
         elif elem_type == "trafo" and not net.res_trafo_sc.empty:
             if pp_idx in net.res_trafo_sc.index:
-                ikss = float(net.res_trafo_sc.at[pp_idx, "ikss_ka"])
+                row = net.res_trafo_sc.loc[pp_idx]
+                hv = float(row["ikss_hv_ka"]) if "ikss_hv_ka" in row.index else 0.0
+                lv = float(row["ikss_lv_ka"]) if "ikss_lv_ka" in row.index else 0.0
+                # Use the larger of the two sides as the branch SC current
+                ikss = max(hv, lv)
         branch_results.append(
             SCBranchResult(branch_id=br.branch_id, ikss_ka=round(ikss, 4))
         )

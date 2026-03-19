@@ -29,7 +29,7 @@ export default function BusProperties({ node, onOpenScReport }: Props) {
   const { data, id } = node;
   const update = (patch: Partial<BusNodeData>) => updateNodeData(id, patch);
   const canRunSC = topologyReport?.isReadyForCalculation === true;
-  const scDone = scStatus === 'success' && scFaultBusId != null;
+  const scDone = scStatus === 'success' && scFaultBusId === id;
 
   return (
     <div className="p-4 flex flex-col gap-5">

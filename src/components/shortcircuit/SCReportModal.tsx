@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useFlowStore } from '../../store/useFlowStore';
 
 interface Props {
@@ -8,6 +9,44 @@ export default function SCReportModal({ onClose }: Props) {
   const scReport = useFlowStore((s) => s.scReport);
   const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
   const nodes = useFlowStore((s) => s.nodes);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement;
+    dialogRef.current?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      // Simple focus trap: cycle Tab within the dialog
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previousFocusRef.current instanceof HTMLElement) {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [onClose]);
 
   if (!scReport || !scFaultBusId) return null;
 
@@ -16,10 +55,17 @@ export default function SCReportModal({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[380px] overflow-hidden">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sc-report-title"
+        tabIndex={-1}
+        className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-[380px] overflow-hidden outline-none"
+      >
         {/* Header */}
         <div className="px-6 py-4 bg-red-50 border-b border-red-100">
-          <h2 className="text-sm font-semibold text-red-800">Short-Circuit Report</h2>
+          <h2 id="sc-report-title" className="text-sm font-semibold text-red-800">Short-Circuit Report</h2>
           <p className="text-xs text-red-600 mt-0.5">IEC 60909 — 3-phase symmetrical fault</p>
         </div>
 

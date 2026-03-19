@@ -214,7 +214,31 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   runShortCircuit: async (busId: string) => {
     const { topologyReport, nodes, edges } = get();
     if (!topologyReport?.isReadyForCalculation) return;
-    set({ scStatus: 'loading', scError: null, scFaultBusId: busId, scReport: null });
+    // Clear stale SC results from previous run before starting new one
+    set((state) => {
+      const cleanNodes = state.nodes.map((n) => {
+        if (n.data?.ikss_ka !== undefined || n.data?.skss_mw !== undefined) {
+          const { ikss_ka, skss_mw, ...rest } = n.data;
+          return { ...n, data: rest };
+        }
+        return n;
+      });
+      const cleanEdges = state.edges.map((e) => {
+        if (e.data?.ikss_ka !== undefined) {
+          const { ikss_ka, ...rest } = e.data;
+          return { ...e, data: rest };
+        }
+        return e;
+      });
+      return {
+        nodes: cleanNodes,
+        edges: cleanEdges,
+        scStatus: 'loading' as const,
+        scError: null,
+        scFaultBusId: busId,
+        scReport: null,
+      };
+    });
     try {
       const payload = generatePowerFlowPayload(
         topologyReport.islands,
