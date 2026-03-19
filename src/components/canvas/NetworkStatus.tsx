@@ -7,6 +7,7 @@ export default function NetworkStatus() {
   const simulationStatus = useFlowStore((s) => s.simulationStatus);
   const simulationError = useFlowStore((s) => s.simulationError);
   const runSimulation = useFlowStore((s) => s.runSimulation);
+  const breakerTrips = useFlowStore((s) => s.breakerTrips);
 
   if (!topologyReport || nodes.length === 0) return null;
 
@@ -60,6 +61,13 @@ export default function NetworkStatus() {
         >
           <span>⚠️</span>
           <span>{warn}</span>
+        </div>
+      ))}
+      {breakerTrips.map((trip, i) => (
+        <div key={i} className="flex items-center gap-1.5 bg-amber-50 border border-amber-300
+          text-amber-800 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
+          <span>⚡</span>
+          <span>Breaker '{trip.edgeLabel}' tripped — I = {trip.ikss_ka.toFixed(2)} kA</span>
         </div>
       ))}
     </Panel>

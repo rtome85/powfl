@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Node, Edge } from 'reactflow';
-import type { BusNodeData, TransformerNodeData, TransmissionEdgeData, SelectedElement } from '../types';
+import type { BusNodeData, TransformerNodeData, TransmissionEdgeData, SelectedElement, BreakerTrip } from '../types';
 import type { TopologyReport } from '../types/topology';
 import { analyzeTopology } from '../utils/topologyEngine';
 import { generatePowerFlowPayload } from '../utils/payloadGenerator';
@@ -24,6 +24,7 @@ interface FlowState {
   scFaultBusId: string | null;
   scReport: { ikss_ka: number; skss_mw: number } | null;
   scRequestId: number;
+  breakerTrips: BreakerTrip[];
   setNodes(nodes: Node[]): void;
   setEdges(edges: Edge[]): void;
   updateNodeData(id: string, data: Partial<BusNodeData | TransformerNodeData>): void;
@@ -33,6 +34,7 @@ interface FlowState {
   runSimulation(): Promise<void>;
   runShortCircuit(busId: string): Promise<void>;
   clearShortCircuit(): void;
+  toggleBreaker(id: string): void;
   requestFitView(): void;
   loadSnapshotData(nodes: Node[], edges: Edge[], simulationStatus: 'idle' | 'loading' | 'success' | 'error', isSimulated: boolean): void;
 }
@@ -53,6 +55,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   scFaultBusId: null,
   scReport: null,
   scRequestId: 0,
+  breakerTrips: [],
   setNodes: (nodes) =>
     set((state) => ({
       nodes,
@@ -65,6 +68,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       scError: null,
       scFaultBusId: null,
       scReport: null,
+      breakerTrips: [],
     })),
   setEdges: (edges) =>
     set((state) => ({
@@ -78,6 +82,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       scError: null,
       scFaultBusId: null,
       scReport: null,
+      breakerTrips: [],
     })),
   updateNodeData: (id, data) =>
     set((state) => {
@@ -129,6 +134,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       scError: null,
       scFaultBusId: null,
       scReport: null,
+      breakerTrips: [],
     })),
   runTopologyAnalysis: () =>
     set((state) => ({
@@ -146,6 +152,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       scError: null,
       scFaultBusId: null,
       scReport: null,
+      breakerTrips: [],
     });
     try {
       const payload = generatePowerFlowPayload(
@@ -286,12 +293,24 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             ? { ...e, data: { ...e.data, ikss_ka: scBranch.ikss_ka } }
             : e;
         });
+        // Auto-trip breakers that exceed their threshold
+        const trips: BreakerTrip[] = [];
+        const finalEdges = updatedEdges.map((e) => {
+          const d = e.data as TransmissionEdgeData | undefined;
+          if (d?.breakerThreshold_ka && d.breakerThreshold_ka > 0
+              && d.ikss_ka != null && d.ikss_ka > d.breakerThreshold_ka) {
+            trips.push({ edgeId: e.id, edgeLabel: d.label ?? e.id, ikss_ka: d.ikss_ka });
+            return { ...e, data: { ...d, isOpen: true } };
+          }
+          return e;
+        });
         return {
           nodes: updatedNodes,
-          edges: updatedEdges,
+          edges: finalEdges,
           scStatus: 'success' as const,
           scFaultBusId: busId,
           scReport: { ikss_ka: result.ikss_ka, skss_mw: result.skss_mw },
+          breakerTrips: trips,
         };
       });
     } catch (err) {
@@ -325,6 +344,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         scError: null,
         scFaultBusId: null,
         scReport: null,
+        breakerTrips: [],
       };
+    }),
+  toggleBreaker: (id) =>
+    set((state) => {
+      const edges = state.edges.map((e) =>
+        e.id === id
+          ? { ...e, data: { ...e.data, isOpen: !(e.data as TransmissionEdgeData).isOpen } }
+          : e
+      );
+      return { edges, topologyReport: analyzeTopology(state.nodes, edges) };
     }),
 }));

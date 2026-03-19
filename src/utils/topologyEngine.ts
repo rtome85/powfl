@@ -13,7 +13,7 @@ export function analyzeTopology(nodes: Node[], edges: Edge[]): TopologyReport {
     adjacency.set(node.id, new Set());
   }
   for (const edge of edges) {
-    if (edge.source && edge.target) {
+    if (edge.source && edge.target && !edge.data?.isOpen) {
       adjacency.get(edge.source)?.add(edge.target);
       adjacency.get(edge.target)?.add(edge.source);
     }
