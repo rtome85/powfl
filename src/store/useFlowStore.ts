@@ -23,6 +23,7 @@ interface FlowState {
   scError: string | null;
   scFaultBusId: string | null;
   scReport: { ikss_ka: number; skss_mw: number } | null;
+  scRequestId: number;
   setNodes(nodes: Node[]): void;
   setEdges(edges: Edge[]): void;
   updateNodeData(id: string, data: Partial<BusNodeData | TransformerNodeData>): void;
@@ -51,6 +52,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   scError: null,
   scFaultBusId: null,
   scReport: null,
+  scRequestId: 0,
   setNodes: (nodes) =>
     set((state) => ({
       nodes,
@@ -214,6 +216,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   runShortCircuit: async (busId: string) => {
     const { topologyReport, nodes, edges } = get();
     if (!topologyReport?.isReadyForCalculation) return;
+    const localRequestId = Date.now();
     // Clear stale SC results from previous run before starting new one
     set((state) => {
       const cleanNodes = state.nodes.map((n) => {
@@ -237,6 +240,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         scError: null,
         scFaultBusId: busId,
         scReport: null,
+        scRequestId: localRequestId,
       };
     });
     try {
@@ -250,6 +254,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         fault_bus_id: busId,
         islands: payload.islands,
       });
+      if (get().scRequestId !== localRequestId) return; // stale response
       if (result.status === 'error') {
         set({ scStatus: 'error', scError: result.message, scFaultBusId: null });
         return;
