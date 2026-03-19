@@ -30,7 +30,9 @@ export function generatePowerFlowPayload(
       const tgt = island.nodes.find((n) => n.id === e.target);
       return src?.type === 'transformerNode' || tgt?.type === 'transformerNode';
     });
-    const lineEdges = islandEdges.filter((e) => !transformerEdges.includes(e));
+    const lineEdges = islandEdges.filter(
+      (e) => !transformerEdges.includes(e) && !(e.data as TransmissionEdgeData | undefined)?.isOpen
+    );
 
     const branches: BranchPayload[] = [];
 

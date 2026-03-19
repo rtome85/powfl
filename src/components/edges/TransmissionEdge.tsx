@@ -36,24 +36,30 @@ function TransmissionEdge({
   const isSimulated = useFlowStore((s) => s.isSimulated);
   const hasError = useFlowStore((s) => s.errorElementIds.includes(id));
   const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
+  const toggleBreaker = useFlowStore((s) => s.toggleBreaker);
+
+  const isOpen = data?.isOpen === true;
+  const hasBreaker = isOpen || (data?.breakerThreshold_ka ?? 0) > 0;
 
   const isScActive = scFaultBusId !== null;
   const hasScResult = isScActive && data?.ikss_ka != null;
   // Any edge carrying SC current is feeding the fault
-  const feedsFault = hasScResult && (data?.ikss_ka ?? 0) > 0;
+  const feedsFault = hasScResult && !isOpen && (data?.ikss_ka ?? 0) > 0;
 
   const hasResults = isSimulated && data?.loading_percent != null;
-  const strokeColor = hasError
-    ? '#ef4444'
-    : feedsFault
-      ? '#60a5fa' // electric blue for feeding edges
-      : isScActive
-        ? '#94a3b8'
-        : hasResults
-          ? getLoadingColor(data!.loading_percent!)
-          : selected
-            ? '#6366f1'
-            : '#94a3b8';
+  const strokeColor = isOpen
+    ? '#94a3b8'
+    : hasError
+      ? '#ef4444'
+      : feedsFault
+        ? '#60a5fa' // electric blue for feeding edges
+        : isScActive
+          ? '#94a3b8'
+          : hasResults
+            ? getLoadingColor(data!.loading_percent!)
+            : selected
+              ? '#6366f1'
+              : '#94a3b8';
 
   return (
     <>
@@ -81,15 +87,37 @@ function TransmissionEdge({
       )}
       <path
         id={id}
-        className={`react-flow__edge-path${feedsFault ? ' animate-fault-flow' : ''}`}
+        className={`react-flow__edge-path${feedsFault && !isOpen ? ' animate-fault-flow' : ''}`}
         d={edgePath}
         strokeWidth={feedsFault ? 3.5 : selected ? 2.5 : 1.8}
         stroke={strokeColor}
         fill="none"
         strokeLinecap="round"
-        strokeDasharray={feedsFault ? '8 8' : undefined}
+        strokeDasharray={isOpen ? '6 4' : feedsFault ? '8 8' : undefined}
       />
       <EdgeLabelRenderer>
+        {hasBreaker && (
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY - 28}px)`,
+              pointerEvents: 'all',
+              cursor: 'pointer',
+            }}
+            className="nodrag nopan"
+            onClick={(e) => { e.stopPropagation(); toggleBreaker(id); }}
+            title={isOpen ? 'Breaker OPEN — click to close' : 'Breaker CLOSED — click to open'}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18">
+              <rect x="1" y="1" width="16" height="16" rx="2" fill="white" stroke="#94a3b8" strokeWidth="1.2"/>
+              {isOpen
+                ? <><line x1="5" y1="5" x2="13" y2="13" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
+                     <line x1="13" y1="5" x2="5" y2="13" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/></>
+                : <circle cx="9" cy="9" r="4" fill="#22c55e"/>
+              }
+            </svg>
+          </div>
+        )}
         <div
           style={{
             position: 'absolute',

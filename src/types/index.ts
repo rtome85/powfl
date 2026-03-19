@@ -41,6 +41,15 @@ export interface TransmissionEdgeData {
   loading_percent?: number;
   // Short-circuit result
   ikss_ka?: number;
+  // Circuit breaker
+  isOpen?: boolean;
+  breakerThreshold_ka?: number;
+}
+
+export interface BreakerTrip {
+  edgeId: string;
+  edgeLabel: string;
+  ikss_ka: number;
 }
 
 export type SelectedElement =
