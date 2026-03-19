@@ -35,19 +35,41 @@ function TransmissionEdge({
 
   const isSimulated = useFlowStore((s) => s.isSimulated);
   const hasError = useFlowStore((s) => s.errorElementIds.includes(id));
+  const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
+
+  const isScActive = scFaultBusId !== null;
+  const hasScResult = isScActive && data?.ikss_ka != null;
+  // Any edge carrying SC current is feeding the fault
+  const feedsFault = hasScResult && (data?.ikss_ka ?? 0) > 0;
+
   const hasResults = isSimulated && data?.loading_percent != null;
   const strokeColor = hasError
-    ? '#ef4444' // red-500
-    : hasResults
-      ? getLoadingColor(data!.loading_percent!)
-      : selected
-        ? '#6366f1'
-        : '#94a3b8';
+    ? '#ef4444'
+    : feedsFault
+      ? '#60a5fa' // electric blue for feeding edges
+      : isScActive
+        ? '#94a3b8'
+        : hasResults
+          ? getLoadingColor(data!.loading_percent!)
+          : selected
+            ? '#6366f1'
+            : '#94a3b8';
 
   return (
     <>
+      {/* Glow layer for feeding edges in SC mode */}
+      {feedsFault && (
+        <path
+          d={edgePath}
+          strokeWidth={10}
+          stroke="#60a5fa"
+          fill="none"
+          strokeOpacity={0.25}
+          strokeLinecap="round"
+        />
+      )}
       {/* Glow layer when selected */}
-      {selected && (
+      {selected && !isScActive && (
         <path
           d={edgePath}
           strokeWidth={8}
@@ -59,12 +81,13 @@ function TransmissionEdge({
       )}
       <path
         id={id}
-        className="react-flow__edge-path"
+        className={`react-flow__edge-path${feedsFault ? ' animate-fault-flow' : ''}`}
         d={edgePath}
-        strokeWidth={selected ? 2.5 : 1.8}
+        strokeWidth={feedsFault ? 3.5 : selected ? 2.5 : 1.8}
         stroke={strokeColor}
         fill="none"
         strokeLinecap="round"
+        strokeDasharray={feedsFault ? '8 8' : undefined}
       />
       <EdgeLabelRenderer>
         <div
@@ -76,12 +99,18 @@ function TransmissionEdge({
           className={`nodrag nopan rounded-lg px-2 py-1 text-[10px] font-mono shadow-sm transition-colors ${
             hasError
               ? 'bg-red-50 text-red-700 ring-1 ring-red-300'
-              : selected
-                ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
-                : 'bg-white text-gray-500 ring-1 ring-gray-200'
+              : feedsFault
+                ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-300 font-semibold'
+                : isScActive
+                  ? 'bg-white text-gray-500 ring-1 ring-gray-200'
+                  : selected
+                    ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
+                    : 'bg-white text-gray-500 ring-1 ring-gray-200'
           }`}
         >
-          {hasResults ? (
+          {hasScResult ? (
+            <span>{data!.ikss_ka!.toFixed(2)} kA</span>
+          ) : hasResults ? (
             <span>
               P={Math.abs(data!.p_from_mw!).toFixed(1)} MW · {data!.loading_percent!.toFixed(1)}%
             </span>

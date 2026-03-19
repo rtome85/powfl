@@ -4,11 +4,15 @@ import Toolbox from './Toolbox';
 import PropertiesPanel from './PropertiesPanel';
 import FlowCanvas from '../canvas/FlowCanvas';
 import ScenariosPanel from '../scenarios/ScenariosPanel';
+import SCReportModal from '../shortcircuit/SCReportModal';
+import { useFlowStore } from '../../store/useFlowStore';
 
 type RightTab = 'properties' | 'scenarios';
 
 export default function AppShell() {
   const [rightTab, setRightTab] = useState<RightTab>('properties');
+  const scStatus = useFlowStore((s) => s.scStatus);
+  const scReport = useFlowStore((s) => s.scReport);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50">
@@ -61,6 +65,9 @@ export default function AppShell() {
         </div>
         {rightTab === 'properties' ? <PropertiesPanel /> : <ScenariosPanel />}
       </aside>
+
+      {/* SC Report Modal */}
+      {scStatus === 'success' && scReport != null && <SCReportModal />}
     </div>
   );
 }

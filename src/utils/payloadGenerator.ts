@@ -1,5 +1,5 @@
 import type { Edge, Node } from 'reactflow';
-import type { BusNodeData, TransmissionEdgeData } from '../types';
+import type { BusNodeData, TransformerNodeData, TransmissionEdgeData } from '../types';
 import type { NetworkIsland } from '../types/topology';
 import type {
   BusPayload,
@@ -66,10 +66,11 @@ export function generatePowerFlowPayload(
           ? attachedEdges[1].target
           : attachedEdges[1].source;
 
-      const xPu = (txNode.data as { x_pu?: number }).x_pu ?? 0.1;
-      const tap = (txNode.data as { tap_ratio?: number }).tap_ratio ?? 1.0;
-      const ratingMva =
-        (txNode.data as { rating_mva?: number }).rating_mva ?? 100;
+      const txData = txNode.data as Partial<TransformerNodeData>;
+      const xPu = txData.x_pu ?? 0.1;
+      const tap = txData.tap_ratio ?? 1.0;
+      const ratingMva = txData.rating_mva ?? 100;
+      const vkrPercent = txData.vkr_percent ?? 1.0;
 
       branches.push({
         branch_id: txId,
@@ -81,6 +82,7 @@ export function generatePowerFlowPayload(
         rating_mva: ratingMva,
         is_transformer: true,
         tap,
+        vkr_percent: vkrPercent,
       });
     }
 
@@ -117,6 +119,7 @@ export function generatePowerFlowPayload(
           q_gen_mvar: d.q_gen,
           p_load_mw: d.p_load,
           q_load_mvar: d.q_load,
+          c_factor: d.c_factor ?? 1.1,
         };
       });
 

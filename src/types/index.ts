@@ -11,6 +11,10 @@ export interface BusNodeData {
   q_gen: number;
   p_load: number;
   q_load: number;
+  c_factor: number;
+  // Short-circuit results
+  ikss_ka?: number;
+  skss_mw?: number;
 }
 
 export interface TransformerNodeData {
@@ -20,6 +24,7 @@ export interface TransformerNodeData {
   rating_mva: number;
   tap_ratio: number;
   x_pu: number;
+  vkr_percent: number;
 }
 
 export interface TransmissionEdgeData {
@@ -34,6 +39,8 @@ export interface TransmissionEdgeData {
   p_to_mw?: number;
   q_to_mvar?: number;
   loading_percent?: number;
+  // Short-circuit result
+  ikss_ka?: number;
 }
 
 export type SelectedElement =

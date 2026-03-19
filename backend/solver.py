@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pandapower as pp
 
 from .models import (
@@ -68,21 +70,24 @@ def _validate_island(island: IslandIn) -> None:
                 )
 
 
-def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
-    """Build a pandapower network from *island* and run a Newton-Raphson power flow."""
+def build_pandapower_network(
+    island: IslandIn, s_base_mva: float
+) -> tuple[pp.pandapowerNet, dict[str, int], dict[str, tuple[str, int]]]:
+    """Build a pandapower network and return (net, bus_idx, branch_map).
 
+    bus_idx maps frontend bus id -> pandapower bus index.
+    branch_map maps frontend branch id -> (element_type, pp_index).
+    """
     _validate_island(island)
 
     net = pp.create_empty_network(sn_mva=s_base_mva)
 
-    # Map frontend bus id -> pandapower bus index
     bus_idx: dict[str, int] = {}
 
     for bus in island.buses:
         idx = pp.create_bus(net, vn_kv=bus.v_nom_kv, name=bus.id)
         bus_idx[bus.id] = idx
 
-        # Attach generation / load / ext_grid depending on bus type
         if bus.type == "Slack":
             pp.create_ext_grid(
                 net,
@@ -91,7 +96,6 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
                 va_degree=bus.v_ang_deg,
                 name=f"ext_{bus.id}",
             )
-            # Slack buses can also have loads
             if bus.p_load_mw != 0 or bus.q_load_mvar != 0:
                 pp.create_load(
                     net, bus=idx, p_mw=bus.p_load_mw, q_mvar=bus.q_load_mvar
@@ -109,7 +113,6 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
                     net, bus=idx, p_mw=bus.p_load_mw, q_mvar=bus.q_load_mvar
                 )
         else:
-            # PQ bus
             if bus.p_gen_mw != 0 or bus.q_gen_mvar != 0:
                 pp.create_sgen(
                     net,
@@ -123,7 +126,6 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
                     net, bus=idx, p_mw=bus.p_load_mw, q_mvar=bus.q_load_mvar
                 )
 
-    # Map frontend branch id -> pandapower element index (and type)
     branch_map: dict[str, tuple[str, int]] = {}
 
     for br in island.branches:
@@ -131,7 +133,6 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
         to_idx = bus_idx[br.to_bus]
 
         if br.is_transformer:
-            # Determine HV / LV buses from nominal voltages
             from_vn = net.bus.at[from_idx, "vn_kv"]
             to_vn = net.bus.at[to_idx, "vn_kv"]
 
@@ -142,12 +143,9 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
                 hv_bus, lv_bus = to_idx, from_idx
                 vn_hv, vn_lv = to_vn, from_vn
 
-            # Convert p.u. impedance to percent (pandapower convention)
             vk_percent = br.x_pu * 100.0
-            vkr_percent = br.r_pu * 100.0
+            vkr_percent = br.vkr_percent if br.vkr_percent is not None else br.r_pu * 100.0
 
-            # Compute tap parameters so pandapower applies the correct ratio.
-            # Effective tap = 1 + (tap_pos - tap_neutral) * tap_step_percent / 100
             if br.tap == 1.0:
                 tap_pos, tap_step = 0, 1.0
             elif br.tap > 1.0:
@@ -174,19 +172,11 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
             )
             branch_map[br.branch_id] = ("trafo", idx)
         else:
-            # Transmission line from p.u. parameters
             from_vn = net.bus.at[from_idx, "vn_kv"]
             z_base = from_vn**2 / s_base_mva
 
-            # pandapower create_line_from_parameters expects per-km values
-            # We use length_km=1 so per-km == total
             r_ohm = br.r_pu * z_base
             x_ohm = br.x_pu * z_base
-            # b_pu is total shunt susceptance; convert to nF for pandapower
-            # b_pu = B * Z_base => B_siemens = b_pu / Z_base
-            # C_nF = B_siemens / (2 * pi * 50) * 1e9
-            import math
-
             b_siemens = br.b_pu / z_base if z_base > 0 else 0
             c_nf = b_siemens / (2 * math.pi * 50) * 1e9
 
@@ -202,6 +192,14 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
                 name=br.branch_id,
             )
             branch_map[br.branch_id] = ("line", idx)
+
+    return net, bus_idx, branch_map
+
+
+def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
+    """Build a pandapower network from *island* and run a Newton-Raphson power flow."""
+
+    net, bus_idx, branch_map = build_pandapower_network(island, s_base_mva)
 
     # Run Newton-Raphson
     try:
@@ -219,7 +217,6 @@ def solve_island(island: IslandIn, s_base_mva: float) -> IslandResult:
         vm = float(net.res_bus.at[idx, "vm_pu"])
         va = float(net.res_bus.at[idx, "va_degree"])
 
-        # Aggregate generation from ext_grid, gen, and sgen
         p_gen = 0.0
         q_gen = 0.0
         if not net.res_ext_grid.empty:

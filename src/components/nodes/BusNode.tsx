@@ -43,17 +43,31 @@ function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
   const cfg = typeConfig[data.busType] ?? typeConfig.PQ;
   const isSimulated = useFlowStore((s) => s.isSimulated);
   const hasError = useFlowStore((s) => s.errorElementIds.includes(id));
+  const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
 
-  const borderClass = hasError ? 'border-red-500' : getVoltageBorder(data.v_mag, isSimulated) ?? cfg.border;
-  const dotClass = hasError ? 'bg-red-500' : getVoltageDot(data.v_mag, isSimulated) ?? cfg.dot;
-  const bgClass = hasError ? 'bg-red-50' : 'bg-white';
+  const isFaulted = scFaultBusId === id;
+  const isScActive = scFaultBusId !== null;
+
+  const borderClass = isFaulted
+    ? 'border-red-500'
+    : hasError
+      ? 'border-red-500'
+      : getVoltageBorder(data.v_mag, isSimulated) ?? cfg.border;
+  const dotClass = isFaulted
+    ? 'bg-red-500'
+    : hasError
+      ? 'bg-red-500'
+      : getVoltageDot(data.v_mag, isSimulated) ?? cfg.dot;
+  const bgClass = isFaulted ? 'bg-red-50' : hasError ? 'bg-red-50' : 'bg-white';
 
   return (
     <div
       className={`relative flex items-center gap-2.5 px-3 py-2.5 ${bgClass} rounded-xl border-2 ${borderClass} min-w-[160px] transition-shadow ${
-        selected
-          ? `shadow-lg ${cfg.glow} ring-2 ring-indigo-400 ring-offset-1`
-          : `shadow-sm hover:shadow-md ${cfg.glow}`
+        isFaulted
+          ? 'animate-fault-pulse'
+          : selected
+            ? `shadow-lg ${cfg.glow} ring-2 ring-indigo-400 ring-offset-1`
+            : `shadow-sm hover:shadow-md ${cfg.glow}`
       }`}
     >
       <Handle type="target" position={Position.Left} />
@@ -67,9 +81,15 @@ function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
           <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${cfg.badge}`}>
             {data.busType}
           </span>
-          <span className="text-[10px] font-mono text-gray-400">
-            {data.v_mag.toFixed(3)} pu
-          </span>
+          {isScActive && data.ikss_ka != null ? (
+            <span className="text-[10px] font-mono text-red-600 font-semibold">
+              {data.ikss_ka.toFixed(2)} kA
+            </span>
+          ) : (
+            <span className="text-[10px] font-mono text-gray-400">
+              {data.v_mag.toFixed(3)} pu
+            </span>
+          )}
         </div>
       </div>
 

@@ -20,6 +20,7 @@ export function createBusNode(position: { x: number; y: number }): Node<BusNodeD
       q_gen: 0,
       p_load: 0,
       q_load: 0,
+      c_factor: 1.1,
     },
   };
 }
@@ -36,6 +37,7 @@ export function createTransformerNode(position: { x: number; y: number }): Node<
       rating_mva: 100,
       tap_ratio: 1.0,
       x_pu: 0.1,
+      vkr_percent: 1.0,
     },
   };
 }
@@ -54,6 +56,7 @@ export function createLoadNode(position: { x: number; y: number }): Node<BusNode
       q_gen: 0,
       p_load: 10,
       q_load: 0,
+      c_factor: 1.1,
     },
   };
 }
@@ -68,6 +71,7 @@ export function createGeneratorNode(position: { x: number; y: number }): Node<Bu
       busType: 'PV',
       variant: 'generator' as const,
       p_gen: 50,
+      c_factor: 1.1,
     },
   };
 }

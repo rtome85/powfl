@@ -61,3 +61,19 @@ html, body, #root {
   border: 1px solid #e5e7eb !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
 }
+
+/* Short-circuit fault animations */
+@keyframes fault-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.6), 0 0 30px 10px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px 12px rgba(251, 191, 36, 0.8), 0 0 50px 20px rgba(251, 191, 36, 0.3);
+  }
+}
+.animate-fault-pulse { animation: fault-pulse 0.8s ease-in-out infinite; }
+
+@keyframes fault-flow {
+  to { stroke-dashoffset: -16; }
+}
+.animate-fault-flow { animation: fault-flow 0.15s linear infinite; }
