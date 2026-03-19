@@ -11,8 +11,8 @@ type RightTab = 'properties' | 'scenarios';
 
 export default function AppShell() {
   const [rightTab, setRightTab] = useState<RightTab>('properties');
+  const [showScModal, setShowScModal] = useState(false);
   const scStatus = useFlowStore((s) => s.scStatus);
-  const scReport = useFlowStore((s) => s.scReport);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50">
@@ -63,11 +63,13 @@ export default function AppShell() {
             Scenarios
           </button>
         </div>
-        {rightTab === 'properties' ? <PropertiesPanel /> : <ScenariosPanel />}
+        {rightTab === 'properties' ? <PropertiesPanel onOpenScReport={() => setShowScModal(true)} /> : <ScenariosPanel />}
       </aside>
 
-      {/* SC Report Modal */}
-      {scStatus === 'success' && scReport != null && <SCReportModal />}
+      {/* SC Report Modal — opened manually */}
+      {showScModal && scStatus === 'success' && (
+        <SCReportModal onClose={() => setShowScModal(false)} />
+      )}
     </div>
   );
 }

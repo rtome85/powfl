@@ -1,10 +1,13 @@
 import { useFlowStore } from '../../store/useFlowStore';
 
-export default function SCReportModal() {
+interface Props {
+  onClose: () => void;
+}
+
+export default function SCReportModal({ onClose }: Props) {
   const scReport = useFlowStore((s) => s.scReport);
   const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
   const nodes = useFlowStore((s) => s.nodes);
-  const clearShortCircuit = useFlowStore((s) => s.clearShortCircuit);
 
   if (!scReport || !scFaultBusId) return null;
 
@@ -49,7 +52,7 @@ export default function SCReportModal() {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
           <button
-            onClick={clearShortCircuit}
+            onClick={onClose}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
           >
             Close

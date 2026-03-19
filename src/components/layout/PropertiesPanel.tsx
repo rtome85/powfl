@@ -6,7 +6,11 @@ import EdgeProperties from '../properties/EdgeProperties';
 import type { BusNodeData, TransformerNodeData, TransmissionEdgeData } from '../../types';
 import type { Node, Edge } from 'reactflow';
 
-export default function PropertiesPanel() {
+interface PropertiesPanelProps {
+  onOpenScReport?: () => void;
+}
+
+export default function PropertiesPanel({ onOpenScReport }: PropertiesPanelProps) {
   const selectedElement = useFlowStore((s) => s.selectedElement);
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
@@ -36,7 +40,7 @@ export default function PropertiesPanel() {
 
         {selectedElement?.kind === 'node' && selectedElement.nodeType === 'busNode' && (() => {
           const node = nodes.find((n) => n.id === selectedElement.id) as Node<BusNodeData> | undefined;
-          return node ? <BusProperties node={node} /> : null;
+          return node ? <BusProperties node={node} onOpenScReport={onOpenScReport} /> : null;
         })()}
 
         {selectedElement?.kind === 'node' && selectedElement.nodeType === 'transformerNode' && (() => {

@@ -72,6 +72,15 @@ function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
     >
       <Handle type="target" position={Position.Left} />
 
+      {/* Fault lightning icon — positioned top-right, overlapping the node */}
+      {isFaulted && (
+        <div className="absolute -top-3 -right-3 w-7 h-7 rounded-full bg-red-600 flex items-center justify-center shadow-lg animate-fault-pulse z-10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="rgba(255,255,255,0.3)" />
+          </svg>
+        </div>
+      )}
+
       {/* Color accent dot */}
       <div className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
 
