@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
-import { FileDown, Loader2 } from 'lucide-react';
+import { FileDown, Loader2, Zap } from 'lucide-react';
 import Toolbox from './Toolbox';
 import PropertiesPanel from './PropertiesPanel';
 import FlowCanvas from '../canvas/FlowCanvas';
@@ -18,6 +18,10 @@ export default function AppShell() {
   const [isExporting, setIsExporting] = useState(false);
   const scStatus = useFlowStore((s) => s.scStatus);
   const isSimulated = useFlowStore((s) => s.isSimulated);
+  const simulationStatus = useFlowStore((s) => s.simulationStatus);
+  const topologyReport = useFlowStore((s) => s.topologyReport);
+  const runSimulation = useFlowStore((s) => s.runSimulation);
+  const isReadyForCalculation = topologyReport?.isReadyForCalculation ?? false;
 
   async function handleExportPdf() {
     setIsExporting(true);
@@ -50,19 +54,35 @@ export default function AppShell() {
           </div>
         </div>
         <Toolbox />
-        <div className="p-3 border-t border-gray-100 mt-auto">
+        <div className="p-3 border-t border-gray-100 mt-auto flex flex-col gap-2">
+          {/* Run Simulation — always visible, enabled when topology is ready */}
           <button
-            onClick={handleExportPdf}
-            disabled={isExporting || !isSimulated}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium
-                       text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200
-                       transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => void runSimulation()}
+            disabled={!isReadyForCalculation || simulationStatus === 'loading'}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold
+                       text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg
+                       transition-colors disabled:bg-indigo-300 disabled:cursor-not-allowed"
           >
-            {isExporting
-              ? <Loader2 size={14} className="animate-spin" />
-              : <FileDown size={14} />}
-            {isExporting ? 'Exporting PDF…' : 'Generate PDF Report'}
+            {simulationStatus === 'loading'
+              ? <><Loader2 size={14} className="animate-spin" /><span>Calculating…</span></>
+              : <><Zap size={14} /><span>Run Simulation</span></>}
           </button>
+
+          {/* Generate PDF Report — only after a successful simulation */}
+          {isSimulated && (
+            <button
+              onClick={handleExportPdf}
+              disabled={isExporting}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium
+                         text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200
+                         transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting
+                ? <Loader2 size={14} className="animate-spin" />
+                : <FileDown size={14} />}
+              {isExporting ? 'Exporting PDF…' : 'Generate PDF Report'}
+            </button>
+          )}
         </div>
       </aside>
 
