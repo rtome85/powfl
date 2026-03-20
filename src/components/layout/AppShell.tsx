@@ -1,18 +1,38 @@
 import { useState } from 'react';
 import { ReactFlowProvider } from 'reactflow';
+import { FileDown, Loader2 } from 'lucide-react';
 import Toolbox from './Toolbox';
 import PropertiesPanel from './PropertiesPanel';
 import FlowCanvas from '../canvas/FlowCanvas';
 import ScenariosPanel from '../scenarios/ScenariosPanel';
 import SCReportModal from '../shortcircuit/SCReportModal';
 import { useFlowStore } from '../../store/useFlowStore';
+import { useSnapshotStore } from '../../store/useSnapshotStore';
+import { captureCanvasImage, generateEngineeringReport } from '../../utils/pdfReport';
 
 type RightTab = 'properties' | 'scenarios';
 
 export default function AppShell() {
   const [rightTab, setRightTab] = useState<RightTab>('properties');
   const [showScModal, setShowScModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const scStatus = useFlowStore((s) => s.scStatus);
+  const isSimulated = useFlowStore((s) => s.isSimulated);
+
+  async function handleExportPdf() {
+    setIsExporting(true);
+    try {
+      const { nodes, edges, isSimulated, scReport, scFaultBusId } = useFlowStore.getState();
+      const snapshots = useSnapshotStore.getState().snapshots;
+      const snapshotName = snapshots.length > 0 ? snapshots[snapshots.length - 1].name : undefined;
+      const diagramImage = await captureCanvasImage();
+      await generateEngineeringReport({
+        nodes, edges, isSimulated, scReport, scFaultBusId, snapshotName, diagramImage,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50">
@@ -30,6 +50,20 @@ export default function AppShell() {
           </div>
         </div>
         <Toolbox />
+        <div className="p-3 border-t border-gray-100 mt-auto">
+          <button
+            onClick={handleExportPdf}
+            disabled={isExporting || !isSimulated}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium
+                       text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200
+                       transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting
+              ? <Loader2 size={14} className="animate-spin" />
+              : <FileDown size={14} />}
+            {isExporting ? 'Exporting PDF…' : 'Generate PDF Report'}
+          </button>
+        </div>
       </aside>
 
       {/* Main canvas */}
@@ -44,21 +78,19 @@ export default function AppShell() {
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setRightTab('properties')}
-            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${
-              rightTab === 'properties'
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${rightTab === 'properties'
                 ? 'text-indigo-600 border-b-2 border-indigo-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             Properties
           </button>
           <button
             onClick={() => setRightTab('scenarios')}
-            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${
-              rightTab === 'scenarios'
+            className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${rightTab === 'scenarios'
                 ? 'text-indigo-600 border-b-2 border-indigo-600'
                 : 'text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             Scenarios
           </button>
