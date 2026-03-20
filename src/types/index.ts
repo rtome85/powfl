@@ -15,6 +15,10 @@ export interface BusNodeData {
   // Short-circuit results
   ikss_ka?: number;
   skss_mw?: number;
+  // Harmonic analysis
+  harmonic_injections?: { order: number; magnitude_percent: number }[];
+  thd_v_percent?: number;
+  harmonic_voltages?: { order: number; magnitude_percent: number }[];
 }
 
 export interface TransformerNodeData {
@@ -41,6 +45,8 @@ export interface TransmissionEdgeData {
   loading_percent?: number;
   // Short-circuit result
   ikss_ka?: number;
+  // Harmonic analysis
+  harmonicDistorted?: boolean;
   // Circuit breaker
   isOpen?: boolean;
   breakerThreshold_ka?: number;

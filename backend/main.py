@@ -3,7 +3,10 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from .harmonic_solver import solve_harmonic
 from .models import (
+    HarmonicRequest,
+    HarmonicResponse,
     IslandResult,
     PowerFlowRequest,
     PowerFlowResponse,
@@ -90,3 +93,11 @@ def calculate_short_circuit(payload: ShortCircuitRequest) -> ShortCircuitRespons
                 "element_ids": [],
             },
         ) from exc
+
+
+@app.post("/calculate-harmonics", response_model=HarmonicResponse)
+def calculate_harmonics(payload: HarmonicRequest) -> HarmonicResponse:
+    try:
+        return solve_harmonic(payload)
+    except Exception as exc:
+        return HarmonicResponse(status="error", message=str(exc))

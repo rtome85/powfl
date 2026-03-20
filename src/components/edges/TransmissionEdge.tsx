@@ -70,6 +70,8 @@ function TransmissionEdge({
               ? '#6366f1'
               : '#94a3b8';
 
+  const harmonicDistorted = data?.harmonicDistorted === true && !isScActive;
+
   return (
     <>
       {/* Wide transparent hit area for easier hover (especially on thin strokes) */}
@@ -83,6 +85,19 @@ function TransmissionEdge({
           onMouseEnter={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
           onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
           onMouseLeave={() => setMousePos(null)}
+        />
+      )}
+
+      {/* Harmonic distortion overlay — animated violet dashes */}
+      {harmonicDistorted && (
+        <path
+          d={edgePath}
+          strokeWidth={2.5}
+          stroke="#7c3aed"
+          fill="none"
+          strokeDasharray="3 5"
+          strokeOpacity={0.55}
+          className="animate-harmonic-noise"
         />
       )}
 

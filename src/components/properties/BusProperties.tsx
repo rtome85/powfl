@@ -21,6 +21,7 @@ const busTypeMeta: Record<BusType, { color: string; desc: string }> = {
 
 export default function BusProperties({ node, onOpenScReport }: Props) {
   const updateNodeData = useFlowStore((s) => s.updateNodeData);
+  const updateNodeHarmonicData = useFlowStore((s) => s.updateNodeHarmonicData);
   const topologyReport = useFlowStore((s) => s.topologyReport) as TopologyReport | null;
   const scStatus = useFlowStore((s) => s.scStatus);
   const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
@@ -28,6 +29,10 @@ export default function BusProperties({ node, onOpenScReport }: Props) {
   const clearShortCircuit = useFlowStore((s) => s.clearShortCircuit);
   const { data, id } = node;
   const update = (patch: Partial<BusNodeData>) => updateNodeData(id, patch);
+
+  const injections = data.harmonic_injections ?? [];
+  const updateInjections = (next: { order: number; magnitude_percent: number }[]) =>
+    updateNodeHarmonicData(id, next);
   const canRunSC = topologyReport?.isReadyForCalculation === true;
   const scDone = scStatus === 'success' && scFaultBusId === id;
 
@@ -135,6 +140,69 @@ export default function BusProperties({ node, onOpenScReport }: Props) {
           <input type="number" step="0.01" className={inputCls} value={data.c_factor ?? 1.1}
             onChange={(e) => update({ c_factor: parseFloat(e.target.value) || 1.1 })} />
         </div>
+      </section>
+
+      {/* Harmonic Injections */}
+      <section className="flex flex-col gap-3">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Harmonic Injections</p>
+        {data.thd_v_percent != null && (
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+            data.thd_v_percent > 5 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+          }`}>
+            <span>THD: {data.thd_v_percent.toFixed(2)}%</span>
+            {data.thd_v_percent > 5 && <span>⚠ exceeds 5% limit</span>}
+          </div>
+        )}
+        {injections.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
+              <span className={labelCls}>Order</span>
+              <span className={labelCls}>% of fund.</span>
+              <span />
+            </div>
+            {injections.map((inj, idx) => (
+              <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-1.5 items-center">
+                <input
+                  type="number"
+                  min={2}
+                  max={49}
+                  className={inputCls}
+                  value={inj.order}
+                  onChange={(e) => {
+                    const next = [...injections];
+                    next[idx] = { ...next[idx], order: parseInt(e.target.value) || 2 };
+                    updateInjections(next);
+                  }}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  className={inputCls}
+                  value={inj.magnitude_percent}
+                  onChange={(e) => {
+                    const next = [...injections];
+                    next[idx] = { ...next[idx], magnitude_percent: parseFloat(e.target.value) || 0 };
+                    updateInjections(next);
+                  }}
+                />
+                <button
+                  onClick={() => updateInjections(injections.filter((_, i) => i !== idx))}
+                  className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors text-sm"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          onClick={() => updateInjections([...injections, { order: 5, magnitude_percent: 4.0 }])}
+          className="w-full py-1.5 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors"
+        >
+          + Add Component
+        </button>
       </section>
 
       {/* Short-circuit trigger */}

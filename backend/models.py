@@ -82,6 +82,41 @@ class PowerFlowResponse(BaseModel):
     islands: list[IslandResult]
 
 
+# ── Harmonic analysis models ──────────────────────────────────────────────
+
+class HarmonicComponent(BaseModel):
+    order: int = Field(..., ge=2, le=50)
+    magnitude_percent: float = Field(..., ge=0.0, le=100.0)
+
+
+class HarmonicSource(BaseModel):
+    bus_id: str
+    injections: list[HarmonicComponent]
+
+
+class HarmonicRequest(BaseModel):
+    s_base_mva: float = Field(..., gt=0)
+    islands: list[IslandIn]
+    harmonic_sources: list[HarmonicSource]
+
+
+class HarmonicVoltage(BaseModel):
+    order: int
+    magnitude_percent: float
+
+
+class HarmonicBusResult(BaseModel):
+    id: str
+    thd_v_percent: float
+    harmonic_voltages: list[HarmonicVoltage]
+
+
+class HarmonicResponse(BaseModel):
+    status: Literal["success", "error"]
+    message: str = ""
+    bus_results: list[HarmonicBusResult] = []
+
+
 # ── Short-circuit models ───────────────────────────────────────────────────
 
 class ShortCircuitRequest(BaseModel):

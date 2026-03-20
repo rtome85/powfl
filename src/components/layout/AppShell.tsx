@@ -6,6 +6,7 @@ import PropertiesPanel from './PropertiesPanel';
 import FlowCanvas from '../canvas/FlowCanvas';
 import ScenariosPanel from '../scenarios/ScenariosPanel';
 import SCReportModal from '../shortcircuit/SCReportModal';
+import HarmonicModal from '../harmonic/HarmonicModal';
 import { useFlowStore } from '../../store/useFlowStore';
 import { useSnapshotStore } from '../../store/useSnapshotStore';
 import { captureCanvasImage, generateEngineeringReport } from '../../utils/pdfReport';
@@ -15,6 +16,8 @@ type RightTab = 'properties' | 'scenarios';
 export default function AppShell() {
   const [rightTab, setRightTab] = useState<RightTab>('properties');
   const [showScModal, setShowScModal] = useState(false);
+  const [showHmModal, setShowHmModal] = useState(false);
+  const hmStatus = useFlowStore((s) => s.hmStatus);
   const [isExporting, setIsExporting] = useState(false);
   const scStatus = useFlowStore((s) => s.scStatus);
   const isSimulated = useFlowStore((s) => s.isSimulated);
@@ -89,7 +92,7 @@ export default function AppShell() {
       {/* Main canvas */}
       <main className="flex-1 relative overflow-hidden">
         <ReactFlowProvider>
-          <FlowCanvas />
+          <FlowCanvas onOpenHmReport={() => setShowHmModal(true)} />
         </ReactFlowProvider>
       </main>
 
@@ -121,6 +124,11 @@ export default function AppShell() {
       {/* SC Report Modal — opened manually */}
       {showScModal && scStatus === 'success' && (
         <SCReportModal onClose={() => setShowScModal(false)} />
+      )}
+
+      {/* Harmonic Analysis Modal */}
+      {showHmModal && hmStatus === 'success' && (
+        <HarmonicModal onClose={() => setShowHmModal(false)} />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { memo, useState, useMemo } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
+import { Waves } from 'lucide-react';
 import type { BusNodeData } from '../../types';
 import { useFlowStore } from '../../store/useFlowStore';
 import { getBusInsights } from '../../utils/engineeringInsights';
@@ -78,6 +79,14 @@ function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
       onMouseLeave={() => setMousePos(null)}
     >
       <Handle type="target" position={Position.Left} />
+
+      {/* THD badge — top-left, shown when THD > 5% */}
+      {data.thd_v_percent != null && data.thd_v_percent > 5 && (
+        <div className="absolute -top-2 -left-2 flex items-center gap-0.5 bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm z-10">
+          <Waves size={9} />
+          <span>THD</span>
+        </div>
+      )}
 
       {/* Fault lightning icon — positioned top-right, overlapping the node */}
       {isFaulted && (

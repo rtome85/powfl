@@ -43,7 +43,11 @@ const defaultEdgeData: TransmissionEdgeData = {
   rating_mva: 100,
 };
 
-export default function FlowCanvas() {
+interface FlowCanvasProps {
+  onOpenHmReport: () => void;
+}
+
+export default function FlowCanvas({ onOpenHmReport }: FlowCanvasProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
   const storeNodes = useFlowStore((s) => s.nodes);
   const storeEdges = useFlowStore((s) => s.edges);
@@ -234,7 +238,7 @@ export default function FlowCanvas() {
         <Background variant={BackgroundVariant.Dots} />
         <Controls />
         <MiniMap />
-        <NetworkStatus />
+        <NetworkStatus onOpenHmReport={onOpenHmReport} />
       </ReactFlow>
     </div>
   );

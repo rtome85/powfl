@@ -6,6 +6,8 @@ import { analyzeTopology } from '../utils/topologyEngine';
 import { generatePowerFlowPayload } from '../utils/payloadGenerator';
 import { postPowerFlow, PowerFlowError } from '../api/powerFlowApi';
 import { postShortCircuit } from '../api/shortCircuitApi';
+import { postHarmonics } from '../api/harmonicApi';
+import type { HarmonicSource } from '../types/harmonic';
 
 interface FlowState {
   nodes: Node[];
@@ -25,15 +27,21 @@ interface FlowState {
   scReport: { ikss_ka: number; skss_mw: number } | null;
   scRequestId: number;
   breakerTrips: BreakerTrip[];
+  // Harmonic analysis state
+  hmStatus: 'idle' | 'loading' | 'success' | 'error';
+  hmError: string | null;
   setNodes(nodes: Node[]): void;
   setEdges(edges: Edge[]): void;
   updateNodeData(id: string, data: Partial<BusNodeData | TransformerNodeData>): void;
+  updateNodeHarmonicData(id: string, injections: { order: number; magnitude_percent: number }[]): void;
   updateEdgeData(id: string, data: Partial<TransmissionEdgeData>): void;
   setSelectedElement(el: SelectedElement): void;
   runTopologyAnalysis(): void;
   runSimulation(): Promise<void>;
   runShortCircuit(busId: string): Promise<void>;
   clearShortCircuit(): void;
+  runHarmonics(): Promise<void>;
+  clearHarmonics(): void;
   toggleBreaker(id: string): void;
   requestFitView(): void;
   loadSnapshotData(nodes: Node[], edges: Edge[], simulationStatus: 'idle' | 'loading' | 'success' | 'error', isSimulated: boolean): void;
@@ -56,6 +64,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   scReport: null,
   scRequestId: 0,
   breakerTrips: [],
+  hmStatus: 'idle',
+  hmError: null,
   setNodes: (nodes) =>
     set((state) => ({
       nodes,
@@ -102,6 +112,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         scReport: null,
       };
     }),
+  updateNodeHarmonicData: (id, injections) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === id ? { ...n, data: { ...n.data, harmonic_injections: injections } } : n
+      ),
+    })),
   updateEdgeData: (id, data) =>
     set((state) => ({
       edges: state.edges.map((e) =>
@@ -355,5 +371,67 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           : e
       );
       return { edges, topologyReport: analyzeTopology(state.nodes, edges) };
+    }),
+  runHarmonics: async () => {
+    const { topologyReport, nodes, edges } = get();
+    if (!topologyReport?.isReadyForCalculation) return;
+    set({ hmStatus: 'loading', hmError: null });
+    try {
+      const payload = generatePowerFlowPayload(
+        topologyReport.islands,
+        edges as Edge<TransmissionEdgeData>[],
+        nodes
+      );
+      const harmonicSources: HarmonicSource[] = nodes
+        .filter((n) => (n.data as BusNodeData).harmonic_injections?.length)
+        .map((n) => ({
+          bus_id: n.id,
+          injections: (n.data as BusNodeData).harmonic_injections!,
+        }));
+      const result = await postHarmonics({
+        s_base_mva: payload.s_base_mva,
+        islands: payload.islands,
+        harmonic_sources: harmonicSources,
+      });
+      if (result.status === 'error') {
+        set({ hmStatus: 'error', hmError: result.message });
+        return;
+      }
+      const busResultMap = new Map(result.bus_results.map((b) => [b.id, b]));
+      set((state) => {
+        const updatedNodes = state.nodes.map((n) => {
+          const hr = busResultMap.get(n.id);
+          return hr
+            ? { ...n, data: { ...n.data, thd_v_percent: hr.thd_v_percent, harmonic_voltages: hr.harmonic_voltages } }
+            : n;
+        });
+        const thdMap = new Map(result.bus_results.map((b) => [b.id, b.thd_v_percent]));
+        const updatedEdges = state.edges.map((e) => {
+          const srcThd = thdMap.get(e.source) ?? 0;
+          const tgtThd = thdMap.get(e.target) ?? 0;
+          return (srcThd > 5 || tgtThd > 5)
+            ? { ...e, data: { ...e.data, harmonicDistorted: true } }
+            : { ...e, data: { ...e.data, harmonicDistorted: false } };
+        });
+        return { nodes: updatedNodes, edges: updatedEdges, hmStatus: 'success' as const, hmError: null };
+      });
+    } catch (err) {
+      set({ hmStatus: 'error', hmError: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  },
+  clearHarmonics: () =>
+    set((state) => {
+      const updatedNodes = state.nodes.map((n) => {
+        const { thd_v_percent, harmonic_voltages, ...rest } = n.data as BusNodeData;
+        return { ...n, data: rest };
+      });
+      const updatedEdges = state.edges.map((e) => {
+        if (e.data?.harmonicDistorted !== undefined) {
+          const { harmonicDistorted, ...rest } = e.data as TransmissionEdgeData;
+          return { ...e, data: rest };
+        }
+        return e;
+      });
+      return { nodes: updatedNodes, edges: updatedEdges, hmStatus: 'idle' as const, hmError: null };
     }),
 }));
