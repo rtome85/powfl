@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import {
   getBezierPath,
   EdgeLabelRenderer,
@@ -6,6 +6,8 @@ import {
 } from 'reactflow';
 import type { TransmissionEdgeData } from '../../types';
 import { useFlowStore } from '../../store/useFlowStore';
+import { getEdgeInsights } from '../../utils/engineeringInsights';
+import InsightTooltip from '../analysis/InsightTooltip';
 
 function getLoadingColor(loading: number): string {
   if (loading >= 100) return '#ef4444'; // red-500
@@ -38,6 +40,13 @@ function TransmissionEdge({
   const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
   const toggleBreaker = useFlowStore((s) => s.toggleBreaker);
 
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const insights = useMemo(
+    () => (data ? getEdgeInsights(id, data) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id, data?.loading_percent, data?.ikss_ka, data?.breakerThreshold_ka, isSimulated],
+  );
+
   const isOpen = data?.isOpen === true;
   const hasBreaker = isOpen || (data?.breakerThreshold_ka ?? 0) > 0;
 
@@ -63,6 +72,20 @@ function TransmissionEdge({
 
   return (
     <>
+      {/* Wide transparent hit area for easier hover (especially on thin strokes) */}
+      {insights.length > 0 && (
+        <path
+          d={edgePath}
+          strokeWidth={16}
+          stroke="transparent"
+          fill="none"
+          style={{ cursor: 'crosshair' }}
+          onMouseEnter={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+          onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+          onMouseLeave={() => setMousePos(null)}
+        />
+      )}
+
       {/* Glow layer for feeding edges in SC mode */}
       {feedsFault && (
         <path
@@ -147,6 +170,10 @@ function TransmissionEdge({
           )}
         </div>
       </EdgeLabelRenderer>
+
+      {mousePos && (
+        <InsightTooltip insights={insights} x={mousePos.x} y={mousePos.y} />
+      )}
     </>
   );
 }

@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { toPng } from 'html-to-image';
 import type { Node, Edge } from 'reactflow';
 import type { BusNodeData, TransmissionEdgeData } from '../types';
+import { generateEngineeringInsights, type InsightSeverity } from './engineeringInsights';
 
 // ─── Colors ────────────────────────────────────────────────────────────────
 const NAVY = '#1e3a5f';
@@ -12,6 +13,10 @@ const RED_BG = '#fee2e2';
 const RED_TEXT = '#991b1b';
 const YELLOW_BG = '#fef9c3';
 const YELLOW_TEXT = '#854d0e';
+const INSIGHT_CRITICAL_BG = '#fff1f2';
+const INSIGHT_WARNING_BG = '#fffbeb';
+const INSIGHT_INFO_BG = '#eff6ff';
+const INSIGHT_OK_BG = '#f0fdf4';
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
@@ -264,7 +269,80 @@ export async function generateEngineeringReport(params: ReportParams): Promise<v
     }
   }
 
-  // ── 6. Footers ────────────────────────────────────────────────────────────
+  // ── 6. Engineering Notes & Recommendations ────────────────────────────────
+  const insights = generateEngineeringInsights(nodes, edges, scReport, scFaultBusId);
+
+  if (y > 200) { doc.addPage(); y = 20; }
+  y = sectionTitle(doc, 'Engineering Notes & Recommendations', y);
+
+  const SEVERITY_ROW_BG: Record<InsightSeverity, string> = {
+    critical: INSIGHT_CRITICAL_BG,
+    warning: INSIGHT_WARNING_BG,
+    info: INSIGHT_INFO_BG,
+  };
+  const SEVERITY_LABEL_TEXT: Record<InsightSeverity, [number, number, number]> = {
+    critical: [185, 28, 28],
+    warning: [146, 64, 14],
+    info: [29, 78, 216],
+  };
+
+  if (insights.length === 0) {
+    autoTable(doc, {
+      startY: y,
+      body: [['System Analysis: The network is operating within nominal technical limits. No critical violations detected.']],
+      styles: { fontSize: 8.5, cellPadding: 4, font: 'courier', fillColor: hexToRgb(INSIGHT_OK_BG), textColor: [22, 101, 52] },
+      margin: { left: 14, right: 14 },
+      tableLineColor: [187, 247, 208],
+      tableLineWidth: 0.3,
+    });
+    y = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  } else {
+    for (const insight of insights) {
+      if (y > 260) { doc.addPage(); y = 20; }
+
+      const bgColor = hexToRgb(SEVERITY_ROW_BG[insight.severity]);
+      const labelColor = SEVERITY_LABEL_TEXT[insight.severity];
+      const label = `[${insight.category.toUpperCase()}]`;
+
+      // Wrap message text manually across a max width
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(7.5);
+      const labelW = doc.getTextWidth(label) + 2;
+
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(8);
+      const maxMsgWidth = doc.internal.pageSize.getWidth() - 28 - labelW - 4;
+      const wrapped = doc.splitTextToSize(insight.message, maxMsgWidth);
+      const rowH = Math.max(10, wrapped.length * 4.5 + 5);
+
+      // Background rect
+      doc.setFillColor(...bgColor);
+      doc.setDrawColor(...bgColor);
+      doc.roundedRect(14, y - 1, doc.internal.pageSize.getWidth() - 28, rowH, 1.5, 1.5, 'F');
+
+      // Left accent stripe
+      const stripeColor = SEVERITY_LABEL_TEXT[insight.severity];
+      doc.setFillColor(...stripeColor);
+      doc.rect(14, y - 1, 2.5, rowH, 'F');
+
+      // Category label
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...labelColor);
+      doc.text(label, 20, y + 3.5);
+
+      // Message text
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...hexToRgb('#374151'));
+      doc.text(wrapped, 20 + labelW, y + 3.5);
+
+      y += rowH + 2.5;
+    }
+    y += 5;
+  }
+
+  // ── 7. Footers ────────────────────────────────────────────────────────────
   addFooters(doc);
 
   // ── Save ──────────────────────────────────────────────────────────────────
