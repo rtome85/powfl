@@ -1,7 +1,9 @@
-import { memo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import type { BusNodeData } from '../../types';
 import { useFlowStore } from '../../store/useFlowStore';
+import { getBusInsights } from '../../utils/engineeringInsights';
+import InsightTooltip from '../analysis/InsightTooltip';
 
 const typeConfig: Record<string, { border: string; badge: string; dot: string; glow: string }> = {
   Slack: {
@@ -45,6 +47,9 @@ function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
   const hasError = useFlowStore((s) => s.errorElementIds.includes(id));
   const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
 
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const insights = useMemo(() => getBusInsights(id, data, isSimulated), [id, data, isSimulated]);
+
   const isFaulted = scFaultBusId === id;
   const isScActive = scFaultBusId !== null;
 
@@ -69,6 +74,8 @@ function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
             ? `shadow-lg ${cfg.glow} ring-2 ring-indigo-400 ring-offset-1`
             : `shadow-sm hover:shadow-md ${cfg.glow}`
       }`}
+      onMouseMove={(e) => insights.length > 0 && setMousePos({ x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => setMousePos(null)}
     >
       <Handle type="target" position={Position.Left} />
 
@@ -103,6 +110,10 @@ function BusNode({ id, data, selected }: NodeProps<BusNodeData>) {
       </div>
 
       <Handle type="source" position={Position.Right} />
+
+      {mousePos && (
+        <InsightTooltip insights={insights} x={mousePos.x} y={mousePos.y} />
+      )}
     </div>
   );
 }
