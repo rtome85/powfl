@@ -24,6 +24,7 @@ export default function BusProperties({ node, onOpenScReport }: Props) {
   const topologyReport = useFlowStore((s) => s.topologyReport) as TopologyReport | null;
   const scStatus = useFlowStore((s) => s.scStatus);
   const scFaultBusId = useFlowStore((s) => s.scFaultBusId);
+  const scError = useFlowStore((s) => s.scError);
   const runShortCircuit = useFlowStore((s) => s.runShortCircuit);
   const clearShortCircuit = useFlowStore((s) => s.clearShortCircuit);
   const { data, id } = node;
@@ -139,6 +140,11 @@ export default function BusProperties({ node, onOpenScReport }: Props) {
 
       {/* Short-circuit trigger */}
       <section className="pt-2 border-t border-gray-100 flex flex-col gap-2">
+        {scStatus === 'error' && scError && (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 leading-relaxed">
+            {scError}
+          </p>
+        )}
         {!scDone ? (
           <button
             disabled={!canRunSC || scStatus === 'loading'}
