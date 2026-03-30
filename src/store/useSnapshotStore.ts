@@ -19,6 +19,7 @@ interface SnapshotState {
   loadSnapshot(id: string): void;
   deleteSnapshot(id: string): void;
   exportSnapshot(id: string): void;
+  importSnapshot(data: Snapshot): void;
 }
 
 export const useSnapshotStore = create<SnapshotState>()(
@@ -57,6 +58,15 @@ export const useSnapshotStore = create<SnapshotState>()(
         set((state) => ({
           snapshots: state.snapshots.filter((s) => s.id !== id),
         }));
+      },
+
+      importSnapshot: (data: Snapshot) => {
+        const snapshot: Snapshot = {
+          ...data,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        set((state) => ({ snapshots: [...state.snapshots, snapshot] }));
       },
 
       exportSnapshot: (id: string) => {
