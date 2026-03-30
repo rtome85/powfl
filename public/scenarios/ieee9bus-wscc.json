@@ -1,0 +1,299 @@
+{
+  "id": "ieee9bus-wscc-scenario-001",
+  "name": "IEEE 9-Bus (WSCC) – Base Case",
+  "createdAt": "2026-03-30T00:00:00.000Z",
+  "simulationStatus": "idle",
+  "isSimulated": false,
+  "nodes": [
+    {
+      "id": "bus-1",
+      "type": "busNode",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "Gen 1 (16.5 kV)",
+        "busType": "Slack",
+        "variant": "generator",
+        "v_nom": 16.5,
+        "v_mag": 1.04,
+        "v_ang": 0,
+        "p_gen": 0,
+        "q_gen": 0,
+        "p_load": 0,
+        "q_load": 0,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-2",
+      "type": "busNode",
+      "position": { "x": 400, "y": 750 },
+      "data": {
+        "label": "Gen 2 (18 kV)",
+        "busType": "PV",
+        "variant": "generator",
+        "v_nom": 18.0,
+        "v_mag": 1.025,
+        "v_ang": 0,
+        "p_gen": 163,
+        "q_gen": 0,
+        "p_load": 0,
+        "q_load": 0,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-3",
+      "type": "busNode",
+      "position": { "x": 700, "y": 100 },
+      "data": {
+        "label": "Gen 3 (13.8 kV)",
+        "busType": "PV",
+        "variant": "generator",
+        "v_nom": 13.8,
+        "v_mag": 1.025,
+        "v_ang": 0,
+        "p_gen": 85,
+        "q_gen": 0,
+        "p_load": 0,
+        "q_load": 0,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-4",
+      "type": "busNode",
+      "position": { "x": 100, "y": 350 },
+      "data": {
+        "label": "Bus 4 (230 kV)",
+        "busType": "PQ",
+        "variant": "bus",
+        "v_nom": 230,
+        "v_mag": 1.0,
+        "v_ang": 0,
+        "p_gen": 0,
+        "q_gen": 0,
+        "p_load": 0,
+        "q_load": 0,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-5",
+      "type": "busNode",
+      "position": { "x": 400, "y": 350 },
+      "data": {
+        "label": "Load 5 (230 kV)",
+        "busType": "PQ",
+        "variant": "load",
+        "v_nom": 230,
+        "v_mag": 1.0,
+        "v_ang": 0,
+        "p_gen": 0,
+        "q_gen": 0,
+        "p_load": 90,
+        "q_load": 30,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-6",
+      "type": "busNode",
+      "position": { "x": 700, "y": 350 },
+      "data": {
+        "label": "Bus 6 (230 kV)",
+        "busType": "PQ",
+        "variant": "bus",
+        "v_nom": 230,
+        "v_mag": 1.0,
+        "v_ang": 0,
+        "p_gen": 0,
+        "q_gen": 0,
+        "p_load": 0,
+        "q_load": 0,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-7",
+      "type": "busNode",
+      "position": { "x": 700, "y": 550 },
+      "data": {
+        "label": "Load 7 (230 kV)",
+        "busType": "PQ",
+        "variant": "load",
+        "v_nom": 230,
+        "v_mag": 1.0,
+        "v_ang": 0,
+        "p_gen": 0,
+        "q_gen": 0,
+        "p_load": 100,
+        "q_load": 35,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-8",
+      "type": "busNode",
+      "position": { "x": 400, "y": 550 },
+      "data": {
+        "label": "Bus 8 (230 kV)",
+        "busType": "PQ",
+        "variant": "bus",
+        "v_nom": 230,
+        "v_mag": 1.0,
+        "v_ang": 0,
+        "p_gen": 0,
+        "q_gen": 0,
+        "p_load": 0,
+        "q_load": 0,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "bus-9",
+      "type": "busNode",
+      "position": { "x": 100, "y": 550 },
+      "data": {
+        "label": "Load 9 (230 kV)",
+        "busType": "PQ",
+        "variant": "load",
+        "v_nom": 230,
+        "v_mag": 1.0,
+        "v_ang": 0,
+        "p_gen": 0,
+        "q_gen": 0,
+        "p_load": 125,
+        "q_load": 50,
+        "c_factor": 1.1
+      }
+    },
+    {
+      "id": "tx-1",
+      "type": "transformerNode",
+      "position": { "x": 100, "y": 225 },
+      "data": {
+        "label": "T1 (16.5/230 kV)",
+        "v_primary": 16.5,
+        "v_secondary": 230,
+        "rating_mva": 250,
+        "tap_ratio": 1.0,
+        "x_pu": 0.0576,
+        "vkr_percent": 0.3
+      }
+    },
+    {
+      "id": "tx-2",
+      "type": "transformerNode",
+      "position": { "x": 400, "y": 650 },
+      "data": {
+        "label": "T2 (18/230 kV)",
+        "v_primary": 18.0,
+        "v_secondary": 230,
+        "rating_mva": 250,
+        "tap_ratio": 1.0,
+        "x_pu": 0.0625,
+        "vkr_percent": 0.3
+      }
+    },
+    {
+      "id": "tx-3",
+      "type": "transformerNode",
+      "position": { "x": 700, "y": 225 },
+      "data": {
+        "label": "T3 (13.8/230 kV)",
+        "v_primary": 13.8,
+        "v_secondary": 230,
+        "rating_mva": 300,
+        "tap_ratio": 1.0,
+        "x_pu": 0.0586,
+        "vkr_percent": 0.3
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-bus1-tx1",
+      "source": "bus-1",
+      "target": "tx-1",
+      "type": "transmissionEdge",
+      "data": { "label": "T1 LV", "r": 0, "x": 0, "b": 0, "rating_mva": 250 }
+    },
+    {
+      "id": "e-tx1-bus4",
+      "source": "tx-1",
+      "target": "bus-4",
+      "type": "transmissionEdge",
+      "data": { "label": "T1 HV", "r": 0, "x": 0, "b": 0, "rating_mva": 250 }
+    },
+    {
+      "id": "e-bus4-bus5",
+      "source": "bus-4",
+      "target": "bus-5",
+      "type": "transmissionEdge",
+      "data": { "label": "Line 4-5", "r": 0.017, "x": 0.092, "b": 0.158, "rating_mva": 250 }
+    },
+    {
+      "id": "e-bus5-bus6",
+      "source": "bus-5",
+      "target": "bus-6",
+      "type": "transmissionEdge",
+      "data": { "label": "Line 5-6", "r": 0.039, "x": 0.170, "b": 0.358, "rating_mva": 150 }
+    },
+    {
+      "id": "e-bus3-tx3",
+      "source": "bus-3",
+      "target": "tx-3",
+      "type": "transmissionEdge",
+      "data": { "label": "T3 LV", "r": 0, "x": 0, "b": 0, "rating_mva": 300 }
+    },
+    {
+      "id": "e-tx3-bus6",
+      "source": "tx-3",
+      "target": "bus-6",
+      "type": "transmissionEdge",
+      "data": { "label": "T3 HV", "r": 0, "x": 0, "b": 0, "rating_mva": 300 }
+    },
+    {
+      "id": "e-bus6-bus7",
+      "source": "bus-6",
+      "target": "bus-7",
+      "type": "transmissionEdge",
+      "data": { "label": "Line 6-7", "r": 0.0119, "x": 0.1008, "b": 0.209, "rating_mva": 150 }
+    },
+    {
+      "id": "e-bus7-bus8",
+      "source": "bus-7",
+      "target": "bus-8",
+      "type": "transmissionEdge",
+      "data": { "label": "Line 7-8", "r": 0.0085, "x": 0.0720, "b": 0.149, "rating_mva": 250 }
+    },
+    {
+      "id": "e-bus2-tx2",
+      "source": "bus-2",
+      "target": "tx-2",
+      "type": "transmissionEdge",
+      "data": { "label": "T2 LV", "r": 0, "x": 0, "b": 0, "rating_mva": 250 }
+    },
+    {
+      "id": "e-tx2-bus8",
+      "source": "tx-2",
+      "target": "bus-8",
+      "type": "transmissionEdge",
+      "data": { "label": "T2 HV", "r": 0, "x": 0, "b": 0, "rating_mva": 250 }
+    },
+    {
+      "id": "e-bus8-bus9",
+      "source": "bus-8",
+      "target": "bus-9",
+      "type": "transmissionEdge",
+      "data": { "label": "Line 8-9", "r": 0.032, "x": 0.161, "b": 0.306, "rating_mva": 250 }
+    },
+    {
+      "id": "e-bus9-bus4",
+      "source": "bus-9",
+      "target": "bus-4",
+      "type": "transmissionEdge",
+      "data": { "label": "Line 9-4", "r": 0.010, "x": 0.085, "b": 0.176, "rating_mva": 250 }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSnapshotStore } from '../../store/useSnapshotStore';
+import type { Snapshot } from '../../store/useSnapshotStore';
 import SaveSnapshotModal from './SaveSnapshotModal';
 import ComparisonSummary from './ComparisonSummary';
 
@@ -8,8 +9,26 @@ export default function ScenariosPanel() {
   const loadSnapshot = useSnapshotStore((s) => s.loadSnapshot);
   const deleteSnapshot = useSnapshotStore((s) => s.deleteSnapshot);
   const exportSnapshot = useSnapshotStore((s) => s.exportSnapshot);
+  const importSnapshot = useSnapshotStore((s) => s.importSnapshot);
 
   const [showSave, setShowSave] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string) as Snapshot;
+        importSnapshot(data);
+      } catch {
+        alert('Invalid scenario file.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
   const [compareA, setCompareA] = useState<string>('');
   const [compareB, setCompareB] = useState<string>('');
 
@@ -23,12 +42,27 @@ export default function ScenariosPanel() {
         {showSave ? (
           <SaveSnapshotModal onClose={() => setShowSave(false)} />
         ) : (
-          <button
-            onClick={() => setShowSave(true)}
-            className="w-full px-3 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-          >
-            Save Current Scenario
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowSave(true)}
+              className="flex-1 px-3 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            >
+              Save Current
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 px-3 py-2 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              Import JSON
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleImport}
+            />
+          </div>
         )}
 
         {/* Snapshot list */}

@@ -19,6 +19,7 @@ interface SnapshotState {
   loadSnapshot(id: string): void;
   deleteSnapshot(id: string): void;
   exportSnapshot(id: string): void;
+  importSnapshot(data: Snapshot): void;
 }
 
 export const useSnapshotStore = create<SnapshotState>()(
@@ -57,6 +58,27 @@ export const useSnapshotStore = create<SnapshotState>()(
         set((state) => ({
           snapshots: state.snapshots.filter((s) => s.id !== id),
         }));
+      },
+
+      importSnapshot: (data: Snapshot) => {
+        if (
+          !data ||
+          typeof data.name !== 'string' ||
+          !Array.isArray(data.nodes) ||
+          !Array.isArray(data.edges) ||
+          typeof data.simulationStatus !== 'string' ||
+          typeof data.isSimulated !== 'boolean'
+        ) {
+          throw new Error('Invalid snapshot: missing or malformed required fields.');
+        }
+        const snapshot: Snapshot = {
+          ...data,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          nodes: structuredClone(data.nodes),
+          edges: structuredClone(data.edges),
+        };
+        set((state) => ({ snapshots: [...state.snapshots, snapshot] }));
       },
 
       exportSnapshot: (id: string) => {
