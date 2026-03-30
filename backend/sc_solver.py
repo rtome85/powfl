@@ -43,6 +43,12 @@ def solve_short_circuit(request: ShortCircuitRequest) -> ShortCircuitResponse:
             fault_bus_id=fault_bus_id,
         )
 
+    # IEC 60909 requires generators to have xdss_pu or xdss_ohm (subtransient
+    # reactance). Since the app does not capture generator SC parameters, exclude
+    # all gen elements so calc_sc can proceed using only the external grid(s).
+    if not net.gen.empty:
+        net.gen["in_service"] = False
+
     if fault_bus_id not in bus_idx:
         return ShortCircuitResponse(
             status="error",
